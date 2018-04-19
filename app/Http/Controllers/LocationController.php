@@ -74,8 +74,8 @@ class LocationController extends Controller
 
     public function store(Request $request)
     {
-
-        $json = $request->json()->all();
+        $values = $request->json()->all();
+        $json = $values['location'] ;
 
         if(!isset($json['locationValues'])) {
             return response()->json(['No data was sent'],400);
@@ -113,20 +113,43 @@ class LocationController extends Controller
         }
 
 
-        if($request->has('rooms'))
+        if(isset($json['rooms']))
         {
-            foreach($json['rooms'] as $room)
-            {
-                $location->rooms()->attach($room['id'], [
-                    'num_rooms' => $room['predefined_values']['num_rooms'],
-                    'default_price' => $room['predefined_values']['price']
-                ]);
+            $rulesRoom = [
+                'rooms.*.id' => 'bail|required|exists:rooms,id',
+                'rooms.*.predefined_values.num_rooms' => 'bail|required|numeric',
+                'rooms.*.predefined_values.price_person' => 'bail|required|numeric',
+                'rooms.*.predefined_values.person_number' => 'bail|required|numeric',
+                'rooms.*.predefined_values.available_rooms' => 'bail|required|numeric',
+            ];
+
+            $validatorRoom = Validator::make($json, $rulesRoom);
+
+            if(!$validatorRoom->passes()) {
+                return response()->json($validatorRoom->errors()->all(),400);
             }
+
+            $this->addRooms($location, $json['rooms']);
         }
+
+        return response()->json([
+            'status' => 'success'
+        ], 200);
 
     }
 
-
+    //adds rooms to location
+    private function addRooms(Location $location, array $rooms) {
+        foreach($rooms as $room)
+        {
+            $location->rooms()->attach($room['id'], [
+                'num_rooms' => $room['predefined_values']['num_rooms'],
+                'price_person' => $room['predefined_values']['price_person'],
+                'person_number' => $room['predefined_values']['person_number'],
+                'available_rooms' => $room['predefined_values']['available_rooms']
+            ]);
+        }
+    }
 
     /**
      * Update the specified resource in storage.

@@ -15,7 +15,7 @@
                     <v-toolbar-title>Adauga o locatie noua</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click="createLocation">Save</v-btn>
+                        <v-btn dark flat @click.native="createLocation">Save</v-btn>
                     </v-toolbar-items>
                     <v-menu bottom right offset-y>
                         <v-btn slot="activator" dark icon>
@@ -173,6 +173,9 @@
 
 
 <script>
+
+    import axios from 'axios'
+
     export default {
 
         mounted() {
@@ -247,16 +250,21 @@
                    return;
                  }
 
-                 axios.post('/api/locations/store', {
-                   locationValues: this.locationValues,
-                   rooms: this.rooms
-                 }).then((response) => {
+                 let location = {
+                   locationValues : this.locationValues,
+                   rooms : this.rooms
+                 };
 
+                 axios.post('/api/locations/store', {
+                   location: location,
+                 }).then((response) => {
+                    console.log(response);
                     //show success dialog.
 
                  }).catch((error) => {
 
                    //show error flashbags
+                   console.log(error);
 
                  });
 
