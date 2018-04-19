@@ -22,6 +22,22 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::patch('settings/profile', 'Settings\UpdateProfile');
     Route::patch('settings/password', 'Settings\UpdatePassword');
+
+
+    Route::get('/offers','OfferController@index');
+    Route::get('/offers/{offer_id}', 'OfferController@show');
+    Route::post('/offers/add', 'OfferController@store');
+    Route::post('/offers/update/{offer}', 'OfferController@update');
+
+    Route::get('/locations', 'LocationController@index');
+    Route::get('/locations/{location_id}', 'LocationController@show');
+    Route::post('/locations/store', 'LocationController@store');
+
+
+    Route::get('/rooms', 'RoomController@index');
+
+
+
 });
 
 Route::group(['middleware' => 'guest:api'], function () {

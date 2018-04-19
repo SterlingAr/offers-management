@@ -35,7 +35,7 @@ export default {
       name: this.$t('nav_menu_title'),
       items: [
         { title: 'Dashboard', icon: 'dashboard', route: { name: 'home' } },
-        { title: 'Account', icon: 'account_box', route: { name: 'settings.profile' } }
+        { title: 'Locatii', icon: 'business', route: { name: 'locations' } }
       ]
     }
   }
