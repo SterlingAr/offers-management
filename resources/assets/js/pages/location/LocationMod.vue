@@ -1,22 +1,419 @@
 <template>
-    <div class="container">
+    <div>
+        <v-dialog
+                v-model="dialog"
+                fullscreen
+                hide-overlay
+                transition="dialog-bottom-transition"
+                scrollable
+        >
+            <v-card tile>
+                <v-toolbar card dark color="primary">
+                    <v-btn icon @click.native="$emit('update:dialog', false) " dark>
+                        <v-icon>close</v-icon>
+                    </v-btn>
+                    <v-toolbar-title>Adauga o locatie noua</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-toolbar-items>
+                        <v-btn dark flat @click.native="createLocation">Save</v-btn>
+                    </v-toolbar-items>
+                    <v-menu bottom right offset-y>
+                        <v-btn slot="activator" dark icon>
+                            <v-icon>more_vert</v-icon>
+                        </v-btn>
+
+                    </v-menu>
+                </v-toolbar>
+
+                <v-card-text>
+                    <form>
+                        <v-text-field
+                                v-model="editedLocation.name"
+                                label="Name"
+                                :counter="10"
+                                :error-messages="errors.collect('name')"
+                                v-validate="'required|max:50'"
+                                data-vv-name="name"
+                                required
+                        ></v-text-field>
+                        <v-text-field
+                                v-model="editedLocation.address"
+                                label="Address"
+                                :error-messages="errors.collect('address')"
+                                v-validate="'required|max:250'"
+                                data-vv-name="address"
+                                required
+                        ></v-text-field>
+                        <v-text-field
+                                v-model="editedLocation.phone"
+                                label="Phone"
+                                :error-messages="errors.collect('phone')"
+                                v-validate="'max:20'"
+                                data-vv-name="phone"
+                        ></v-text-field>
+                        <v-text-field
+                                v-model="editedLocation.landline"
+                                label="Landline"
+                                :error-messages="errors.collect('landline')"
+                                v-validate="'max:20'"
+                                data-vv-name="Landline"
+                        ></v-text-field>
+                        <v-text-field
+                                v-model="editedLocation.description"
+                                label="Description"
+                                :textarea=true
+                                :error-messages="errors.collect('description')"
+                                v-validate="'required|max:1500'"
+                                data-vv-name="description"
+                                required
+                        ></v-text-field>
 
 
+                        <v-dialog v-model="dialogRooms" max-width="500px">
+                            <v-btn color="primary" dark slot="activator" class="mb-2">Add room</v-btn>
+                            <v-card>
+                                <v-card-title>
+                                    Adauga o camera.
+                                </v-card-title>
+                                <v-card-text>
+                                    <v-select
+                                            :items="roomTypes"
+                                            item-text="type"
+                                            v-model="selectedType"
+                                            label="Select"
+                                            :error-messages="errors.collect('roomType')"
+                                            v-validate="'required'"
+                                            data-vv-name="roomType"
+                                            item-value="id"
+                                            single-line
+                                    ></v-select>
+                                    <v-container grid-list-md>
+                                        <v-layout wrap>
+                                            <v-flex xs12 sm6 md4>
+                                                <v-text-field
+                                                        v-model.number="editedRoom.predefined_values.num_rooms"
+                                                        label="Number of rooms"
+                                                        :error-messages="errors.collect('numberRooms')"
+                                                        v-validate="'required|numeric'"
+                                                        data-vv-name="numberRooms"
+                                                ></v-text-field>
+                                            </v-flex>
+                                            <v-flex xs12 sm6 md4>
+                                                <v-text-field
+                                                        v-model.number="editedRoom.predefined_values.price_person"
+                                                        label="Price person"
+                                                        :error-messages="errors.collect('pricePerson')"
+                                                        v-validate="'required|numeric'"
+                                                        data-vv-name="pricePerson"
+                                                ></v-text-field>
+                                            </v-flex>
+                                            <v-flex xs12 sm6 md4>
+                                                <v-text-field
+                                                        v-model.number="editedRoom.predefined_values.person_number"
+                                                        label="Persons per rooms"
+                                                        :error-messages="errors.collect('personNumber')"
+                                                        v-validate="'required|numeric'"
+                                                        data-vv-name="personNumber"
+                                                ></v-text-field>
+                                            </v-flex>
+                                            <v-flex xs12 sm6 md4>
+                                                <v-text-field
+                                                        v-model.number="editedRoom.predefined_values.available_rooms"
+                                                        label="Available rooms"
+                                                        :error-messages="errors.collect('availableRooms')"
+                                                        v-validate="'required|numeric'"
+                                                        data-vv-name="availableRooms"
+                                                ></v-text-field>
+                                            </v-flex>
+                                        </v-layout>
+                                    </v-container>
+                                </v-card-text>
+                                <v-card-actions>
+                                    <v-spacer></v-spacer>
+                                    <v-btn color="blue darken-1" flat @click.native="close">Cancel</v-btn>
+                                    <v-btn color="blue darken-1" flat @click.native="save">Save</v-btn>
+                                    <!--<v-btn color="blue darken-1" flat @click="createRoomWithDefaultDetails">Save</v-btn>-->
+                                </v-card-actions>
+                            </v-card>
+                        </v-dialog>
 
+                        <v-data-table
+                                :headers="headers"
+                                :items="rooms"
+                                hide-actions
+                                class="elevation-1"
+                        >
+                            <template slot="items" slot-scope="props">
+                                <td>{{ props.item.id }}</td>
+                                <td class="text-xs-left">{{ props.item.type }}</td>
+                                <td class="text-xs-left">
+
+                                    {{ props.item.predefined_values.num_rooms }}
+
+                                </td>
+                                <td class="text-xs-left">{{ props.item.predefined_values.price_person }}</td>
+                                <td class="text-xs-left">{{ props.item.predefined_values.person_number }}</td>
+                                <td class="text-xs-left">{{ props.item.predefined_values.available_rooms }}</td>
+                                <td class="justify-center layout px-0">
+                                    <v-btn icon class="mx-0" @click="editItem(props.item)">
+                                        <v-icon color="teal">edit</v-icon>
+                                    </v-btn>
+                                    <v-btn icon class="mx-0" @click="deleteItem(props.item)">
+                                        <v-icon color="pink">delete</v-icon>
+                                    </v-btn>
+                                </td>
+                            </template>
+                            <template slot="no-data">
+                                <!--<v-btn color="primary" @click="initialize">Reset</v-btn>-->
+                            </template>
+                        </v-data-table>
+
+                        <v-btn >submit</v-btn>
+                        <v-btn >clear</v-btn>
+                    </form>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
 
 <script>
-    export default {
-        mounted() {
-            console.log('Component mounted.')
+
+  import axios from 'axios'
+
+  export default {
+
+    mounted() {
+      console.log('Component LocationNew mounted.');
+      this.$validator.localize('en', this.dictionary)
+    },
+
+    data() {
+      return {
+
+        $_veeValidate: {
+          validator: 'new'
         },
 
-        methods: {
+        dialogRooms: false,
+        headers: [
+          { text: 'ID', value: 'id', sortable: false,},
+          { text: 'Room type', value: 'type', sortable: false,},
+          { text: 'Number of rooms', value: 'num_rooms',sortable: false },
+          { text: 'Price person', value: 'price_person',sortable: false },
+          { text: 'Persons per room', value: 'person_number',sortable: false },
+          { text: 'Available rooms', value: 'available_rooms',sortable: false },
+        ],
 
+        rooms: [],
+
+        selectedType : '',
+
+
+        editedLocation : {
+          id: 0,
+          name : '',
+          address: '',
+          description: '',
+          phone: '',
+          landline: ''
         },
 
-        props: ['roomTypes']
-    }
+        editedIndex: -1,
+
+        editedRoom: {
+          id: 0,
+          type: '',
+          predefined_values : {
+            price_person: '',
+            person_number: '',
+            num_rooms: '',
+            available_rooms: ''
+          }
+        },
+
+        defaultItem: {
+          id: 0,
+          type: '',
+          predefined_values : {
+            price_person: '',
+            person_number: '',
+            number_rooms: '',
+            available_rooms: ''
+          }
+        },
+
+
+
+      }
+    },
+
+    methods: {
+
+      createLocation() {
+
+
+        this.$validator.validateAll(this.editedLocation).then(result => {
+
+          if(!result){
+            return;
+          }
+
+          let location = {
+            editedLocation : this.editedLocation,
+            rooms : this.rooms
+          };
+
+          axios.post('/api/locations/store', {
+            location: location,
+          }).then((response) => {
+            console.log(response);
+            //show success dialog.
+
+          }).catch((error) => {
+
+            //show error flashbags
+            console.log(error);
+
+          });
+
+        }).catch(error => {
+
+        })
+
+      },
+
+
+
+      //creates room with the selected type and predefined details
+      createRoomWithDefaultDetails() {
+
+        let valuesObj = {
+          numberRooms : this.editedRoom.predefined_values.num_rooms,
+          pricePerson : this.editedRoom.predefined_values.price_person,
+          personNumber : this.editedRoom.predefined_values.person_number,
+          availableRooms : this.editedRoom.predefined_values.available_rooms
+        }
+
+        this.$validator.validateAll(valuesObj).then(result => {
+
+          if(!result) {
+            return;
+          }
+
+          let room = {};
+          room.id  = this.selectedType;
+          room.type = this.typeTextValue;
+          room.predefined_values = {};
+          room.predefined_values.num_rooms = this.numberRooms;
+          room.predefined_values.price_person = this.pricePerson;
+          room.predefined_values.person_number = this.personNumber;
+          room.predefined_values.available_rooms = this.availableRooms;
+          this.rooms.push(JSON.parse(JSON.stringify(room)));//push copy of object.
+          this.clearRoomValues();
+          this.close();
+
+        }).catch(() => {
+
+
+        });
+
+      },
+
+      // editRoom(id) {
+      //
+      //   for(let room of rooms) {
+      //     if(room.id === id){
+      //        this.numberRooms = room.predefined_values.numberRooms;
+      //        this.pricePerson = room.predefined_values.pricePerson;
+      //        this.personNumber = room.predefined_values.personNumber;
+      //        this.availableRooms = room.predefined_values.availableRooms;
+      //        return;
+      //     }
+      //   }
+      // },
+
+      editItem (item) {
+
+        this.editedIndex = this.rooms.indexOf(item)
+        this.editedRoom = Object.assign({}, item)
+        this.dialogRooms = true
+      },
+
+      deleteItem (item) {
+        const index = this.rooms.indexOf(item)
+        confirm('Are you sure you want to delete this item?') && this.rooms.splice(index, 1)
+      },
+
+      close () {
+        this.dialogRooms = false
+        setTimeout(() => {
+          this.editedRoom = Object.assign({}, this.defaultItem)
+          this.editedIndex = -1
+        }, 300)
+      },
+
+      save () {
+
+        this.$validator.validateAll(this.valuesRoom).then(result => {
+
+          if(!result) {
+            return;
+          }
+
+          if (this.editedIndex > -1) {
+            this.editedRoom.id = this.selectedType;
+            Object.assign(this.rooms[this.editedIndex], this.editedRoom)
+          } else {
+            this.editedRoom.id = this.selectedType;
+            this.rooms.push(this.editedRoom)
+          }
+          this.close()
+        }).catch(error => {
+
+        });
+
+      },
+
+
+      //method to clear rogue values, just in case
+      cleareditedLocation () {
+        this.name = '';
+        this.description = '';
+        this.address = '';
+        this.phone = '';
+        this.landline = '';
+        this.rooms = [];
+        this.$validation.clear();
+      },
+
+
+
+
+    },
+
+    computed: {
+
+      typeTextValue() {
+        for(let room of this.roomTypes) {
+          if (room.id === this.selectedType) {
+            return room.type;
+          }
+        }
+      },
+
+      valuesRoom () {
+        return {
+          numberRooms : this.editedRoom.predefined_values.num_rooms,
+          pricePerson : this.editedRoom.predefined_values.price_person,
+          personNumber : this.editedRoom.predefined_values.person_number,
+          availableRooms : this.editedRoom.predefined_values.available_rooms
+        }
+      }
+
+    },
+
+    props: ['roomTypes','dialog','editedLocation']
+  }
 </script>

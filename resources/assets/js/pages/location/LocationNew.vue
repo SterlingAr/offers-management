@@ -91,7 +91,7 @@
                                         <v-layout wrap>
                                             <v-flex xs12 sm6 md4>
                                                 <v-text-field
-                                                          v-model.number="numberRooms"
+                                                          v-model.number="editedRoom.predefined_values.num_rooms"
                                                           label="Number of rooms"
                                                           :error-messages="errors.collect('numberRooms')"
                                                           v-validate="'required|numeric'"
@@ -100,7 +100,7 @@
                                             </v-flex>
                                             <v-flex xs12 sm6 md4>
                                                 <v-text-field
-                                                        v-model.number="pricePerson"
+                                                        v-model.number="editedRoom.predefined_values.price_person"
                                                         label="Price person"
                                                         :error-messages="errors.collect('pricePerson')"
                                                         v-validate="'required|numeric'"
@@ -109,7 +109,7 @@
                                             </v-flex>
                                             <v-flex xs12 sm6 md4>
                                                 <v-text-field
-                                                        v-model.number="personNumber"
+                                                        v-model.number="editedRoom.predefined_values.person_number"
                                                         label="Persons per rooms"
                                                         :error-messages="errors.collect('personNumber')"
                                                         v-validate="'required|numeric'"
@@ -118,7 +118,7 @@
                                             </v-flex>
                                             <v-flex xs12 sm6 md4>
                                                 <v-text-field
-                                                        v-model.number="availableRooms"
+                                                        v-model.number="editedRoom.predefined_values.available_rooms"
                                                         label="Available rooms"
                                                         :error-messages="errors.collect('availableRooms')"
                                                         v-validate="'required|numeric'"
@@ -131,10 +131,12 @@
                                 <v-card-actions>
                                     <v-spacer></v-spacer>
                                     <v-btn color="blue darken-1" flat @click.native="close">Cancel</v-btn>
-                                    <v-btn color="blue darken-1" flat @click="createRoomWithDefaultDetails">Save</v-btn>
+                                    <v-btn color="blue darken-1" flat @click.native="save">Save</v-btn>
+                                    <!--<v-btn color="blue darken-1" flat @click="createRoomWithDefaultDetails">Save</v-btn>-->
                                 </v-card-actions>
                             </v-card>
                         </v-dialog>
+
                         <v-data-table
                                 :headers="headers"
                                 :items="rooms"
@@ -144,15 +146,19 @@
                             <template slot="items" slot-scope="props">
                                 <td>{{ props.item.id }}</td>
                                 <td class="text-xs-left">{{ props.item.type }}</td>
-                                <td class="text-xs-left">{{ props.item.predefined_values.num_rooms }}</td>
+                                <td class="text-xs-left">
+
+                                    {{ props.item.predefined_values.num_rooms }}
+
+                                </td>
                                 <td class="text-xs-left">{{ props.item.predefined_values.price_person }}</td>
                                 <td class="text-xs-left">{{ props.item.predefined_values.person_number }}</td>
                                 <td class="text-xs-left">{{ props.item.predefined_values.available_rooms }}</td>
                                 <td class="justify-center layout px-0">
-                                    <v-btn icon class="mx-0" >
+                                    <v-btn icon class="mx-0" @click="editItem(props.item)">
                                         <v-icon color="teal">edit</v-icon>
                                     </v-btn>
-                                    <v-btn icon class="mx-0" >
+                                    <v-btn icon class="mx-0" @click="deleteItem(props.item)">
                                         <v-icon color="pink">delete</v-icon>
                                     </v-btn>
                                 </td>
@@ -213,29 +219,32 @@
                         landline: ''
                     },
 
+                  editedIndex: -1,
 
-              //room related predefined values
-                  pricePerson: '',
-                  personNumber: '',
-                  numberRooms: '',
-                  availableRooms: '',
-
-                  dictionary: {
-                    attributes: {
-                      email: 'E-mail Address'
-                      // custom attributes
-                    },
-                    custom: {
-                      name: {
-                        required: () => 'Name can not be empty',
-                        max: 'The name field may not be greater than 10 characters'
-                        // custom messages
-                      },
-                      select: {
-                        required: 'Select field is required'
-                      }
+                  editedRoom: {
+                    id: 0,
+                    type: '',
+                    predefined_values : {
+                      price_person: '',
+                      person_number: '',
+                      num_rooms: '',
+                      available_rooms: ''
                     }
-                  }
+                  },
+
+                  defaultItem: {
+                    id: 0,
+                    type: '',
+                    predefined_values : {
+                      price_person: '',
+                      person_number: '',
+                      number_rooms: '',
+                      available_rooms: ''
+                    }
+                  },
+
+
+
             }
         },
 
@@ -274,18 +283,16 @@
 
             },
 
-             close () {
-                this.dialogRooms = false
-             },
+
 
              //creates room with the selected type and predefined details
              createRoomWithDefaultDetails() {
 
                 let valuesObj = {
-                  numberRooms : this.numberRooms,
-                  pricePerson : this.pricePerson,
-                  personNumber : this.personNumber,
-                  availableRooms : this.availableRooms
+                  numberRooms : this.editedRoom.predefined_values.num_rooms,
+                  pricePerson : this.editedRoom.predefined_values.price_person,
+                  personNumber : this.editedRoom.predefined_values.person_number,
+                  availableRooms : this.editedRoom.predefined_values.available_rooms
                 }
 
                 this.$validator.validateAll(valuesObj).then(result => {
@@ -313,6 +320,61 @@
 
              },
 
+             // editRoom(id) {
+             //
+             //   for(let room of rooms) {
+             //     if(room.id === id){
+             //        this.numberRooms = room.predefined_values.numberRooms;
+             //        this.pricePerson = room.predefined_values.pricePerson;
+             //        this.personNumber = room.predefined_values.personNumber;
+             //        this.availableRooms = room.predefined_values.availableRooms;
+             //        return;
+             //     }
+             //   }
+             // },
+
+              editItem (item) {
+
+                    this.editedIndex = this.rooms.indexOf(item)
+                    this.editedRoom = Object.assign({}, item)
+                    this.dialogRooms = true
+              },
+
+              deleteItem (item) {
+                const index = this.rooms.indexOf(item)
+                confirm('Are you sure you want to delete this item?') && this.rooms.splice(index, 1)
+              },
+
+              close () {
+                this.dialogRooms = false
+                setTimeout(() => {
+                  this.editedRoom = Object.assign({}, this.defaultItem)
+                  this.editedIndex = -1
+                }, 300)
+              },
+
+              save () {
+
+               this.$validator.validateAll(this.valuesRoom).then(result => {
+
+                 if(!result) {
+                   return;
+                 }
+
+                 if (this.editedIndex > -1) {
+                   this.editedRoom.id = this.selectedType;
+                   Object.assign(this.rooms[this.editedIndex], this.editedRoom)
+                 } else {
+                   this.editedRoom.id = this.selectedType;
+                   this.rooms.push(this.editedRoom)
+                 }
+                 this.close()
+               }).catch(error => {
+
+               });
+
+              },
+
 
              //method to clear rogue values, just in case
              clearLocationValues () {
@@ -325,13 +387,13 @@
                 this.$validation.clear();
              },
 
-             clearRoomValues() {
-               this.numberRooms = '';
-               this.pricePerson = '';
-               this.personNumber = '';
-               this.availableRooms = '';
-               this.selectedType= '';
-             }
+             // clearRoomValues() {
+             //   this.numberRooms = '';
+             //   this.pricePerson = '';
+             //   this.personNumber = '';
+             //   this.availableRooms = '';
+             //   this.selectedType= '';
+             // }
 
 
         },
@@ -344,7 +406,16 @@
                   return room.type;
                 }
               }
+            },
+
+          valuesRoom () {
+            return {
+              numberRooms : this.editedRoom.predefined_values.num_rooms,
+              pricePerson : this.editedRoom.predefined_values.price_person,
+              personNumber : this.editedRoom.predefined_values.person_number,
+              availableRooms : this.editedRoom.predefined_values.available_rooms
             }
+          }
 
         },
 

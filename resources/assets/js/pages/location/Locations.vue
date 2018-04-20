@@ -25,11 +25,11 @@
                 <template slot="items" slot-scope="props">
 
                     <td>{{ props.item.id }}</td>
-                    <td class="text-xs-right">{{ props.item.name }}</td>
-                    <td class="text-xs-right">{{ props.item.description }}</td>
-                    <td class="text-xs-right">{{ props.item.address }}</td>
-                    <td class="text-xs-right">{{ props.item.phone }}</td>
-                    <td class="text-xs-right">{{ props.item.landline }}</td>
+                    <td class="text-xs-left">{{ props.item.name }}</td>
+                    <td class="text-xs-left">{{ props.item.description }}</td>
+                    <td class="text-xs-left">{{ props.item.address }}</td>
+                    <td class="text-xs-left">{{ props.item.phone }}</td>
+                    <td class="text-xs-leftt">{{ props.item.landline }}</td>
                     <td class="justify-center layout px-0">
                         <v-btn icon class="mx-0" @click="show(props.item.id)">
                             <v-icon color="blue">info</v-icon>
@@ -48,6 +48,7 @@
             </v-data-table>
         </v-card>
         <location-new :dialog.sync="addDialog" :room-types="roomTypes"></location-new>
+        <location-mod :dialog.sync="editDialog" :room-types="roomTypes"  :edited-location="editedLocation" ></location-mod>
     </div>
 </template>
 
@@ -73,6 +74,8 @@
         data() {
             return {
                 addDialog:false,
+                editDialog: false,
+                editedLocation: {},
                 roomTypes:[],
               search: '',
               delay: 5000,
@@ -133,14 +136,24 @@
                 });
             },
 
-            mod(id) {
+            editItem(item) {
+                  console.log(item);
+                  let em = this;
 
+                  axios.get('/api/rooms').then((response) => {
+
+                    em.roomTypes=response.data.roomTypes;
+                    em.editDialog=true;
+                    em.editedLocation = item;
+                  }).catch((error) => {
+                    console.log(error);
+                  });
             },
 
             newLocation() {
                 //intermediary function, for possible future actions
 
-                let em=this;
+                let em = this;
                 axios.get('/api/rooms').then((response) => {
 
                     em.roomTypes=response.data.roomTypes;
@@ -154,35 +167,11 @@
 
 
 
-            modModal(location){
-                this.$modal.show(LocationMod, {
-                    location: location
-                },{
-                    draggable:true
-                });
-            },
-
-            newModal(roomTypes){
-
-                // this.$modal.show('new', {roomTypes : roomTypes})
-
-                this.$modal.show(LocationNew, {
-                    roomTypes : roomTypes
-                },{
-                    draggable:true,
-                    adaptive:true,
-                    resizable:true,
-                    width:900,
-                    height:650
-                });
-
-            }
-
         },
 
         components: {
             'location' : Location,
-            'locationMod': LocationMod,
+            'location-mod': LocationMod,
             'location-new': LocationNew
         },
 
