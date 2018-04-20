@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Location;
 use Illuminate\Http\Request;
+use Validator;
 
 class LocationController extends Controller
 {
@@ -17,24 +18,51 @@ class LocationController extends Controller
     }
 
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+
     public function index(Request $request)
     {
-//        $locations = Location::all();
-        $locations = Location::with('rooms')->get();
+        $locations = Location::all();
+//        $locations = Location::with('rooms')->get();
         return response()->json(['locations' => $locations]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Location  $location
-     * @return \Illuminate\Http\Response
-     */
+
+    //query locations for table using search parameters sent in the request
+    public function indexTable(Request $request)
+    {
+
+        $locations = Location::select([
+            'id',
+            'name',
+            'description',
+            'address',
+            'phone',
+            'landline'
+        ]);
+
+
+        if(!empty($request->query)){
+
+            $all= $request->toArray();
+            $search= $all['query'];
+            //hello, my name is; drop tables employees;
+            $locations->where(function ($query) use ($search) {
+                $query->where("name", "like", "%$search%")
+                    ->orWhere("description", "like", "%$search%")
+                    ->orWhere("address", "like", "%$search%")
+                    ->orWhere("phone", "like", "%$search%")
+                    ->orWhere("landline", "like", "%$search%");
+            });
+        }
+
+
+        return response()->json([
+            "locations" => $locations->get()->toArray()
+        ]);
+
+    }
+
+
     public function show($id)
     {
         $location = Location::with('rooms')->where('id', $id)->first();
@@ -44,45 +72,84 @@ class LocationController extends Controller
     }
 
 
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
+        $values = $request->json()->all();
+        $json = $values['location'] ;
 
-        //receives name, , address description
-        $locationData = $request->json()->all();
-//        print_r($locationJSON);
+        if(!isset($json['locationValues'])) {
+            return response()->json(['No data was sent'],400);
+        }
 
-        $locationJSON = $locationData['location'];
+        $rules = [
+            'name' => 'bail|required|max:50',
+            'address' => 'bail|required|max:250',
+            'description' => 'bail|required|max:1500',
+            'phone' => 'sometimes|max:20',
+            'landline' => 'sometimes|max:20'
+        ];
+
+        $validator = Validator::make($json['locationValues'], $rules);
+
+        if(!$validator->passes()) {
+
+            return response()->json($validator->errors()->all(),400);
+
+        }
 
         $location = Location::create([
-           'name' =>  $locationJSON['name'],
-           'address' =>  $locationJSON['address'],
-           'phone' =>  $locationJSON['phone'],
-            'description' =>  $locationJSON['description'],
-            'landline' =>  $locationJSON['landline']
+            'name' =>  $json['locationValues']['name'],
+            'address' =>  $json['locationValues']['address'],
+            'description' =>  $json['locationValues']['description'],
+            'landline' =>  $json['locationValues']['landline']
         ]);
 
-
-        if(isset($locationJSON['rooms']))
-        {
-            foreach($locationJSON['rooms'] as $room)
-            {
-                $location->rooms()->attach($room['id'], [
-                    'num_rooms' => $room['details']['num_rooms'],
-                    'default_price' => $room['details']['price']
-                ]);
-            }
+        if(isset($json['locationValues']['phone'])) {
+            $location->phone = $json['locationValues']['phone'];
         }
+
+        if(isset($json['locationValues']['landline'])) {
+            $location->landline = $json['locationValues']['phone'];
+        }
+
+
+        if(isset($json['rooms']))
+        {
+            $rulesRoom = [
+                'rooms.*.id' => 'bail|required|exists:rooms,id',
+                'rooms.*.predefined_values.num_rooms' => 'bail|required|numeric',
+                'rooms.*.predefined_values.price_person' => 'bail|required|numeric',
+                'rooms.*.predefined_values.person_number' => 'bail|required|numeric',
+                'rooms.*.predefined_values.available_rooms' => 'bail|required|numeric',
+            ];
+
+            $validatorRoom = Validator::make($json, $rulesRoom);
+
+            if(!$validatorRoom->passes()) {
+                return response()->json($validatorRoom->errors()->all(),400);
+            }
+
+            $this->addRooms($location, $json['rooms']);
+        }
+
+        return response()->json([
+            'status' => 'success'
+        ], 200);
 
     }
 
-
+    //adds rooms to location
+    private function addRooms(Location $location, array $rooms) {
+        foreach($rooms as $room)
+        {
+            $location->rooms()->attach($room['id'], [
+                'num_rooms' => $room['predefined_values']['num_rooms'],
+                'price_person' => $room['predefined_values']['price_person'],
+                'person_number' => $room['predefined_values']['person_number'],
+                'available_rooms' => $room['predefined_values']['available_rooms']
+            ]);
+        }
+    }
 
     /**
      * Update the specified resource in storage.

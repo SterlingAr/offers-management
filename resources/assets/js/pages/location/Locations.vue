@@ -1,30 +1,53 @@
 <template  ref="locations">
     <div class="container">
-        <table class="table">
-            <thead>
-            <tr>
-                <th>Location name</th>
-                <th >
-                    <v-btn small  @click="newLocation()" fab dark color="indigo">
-                        <v-icon dark>add</v-icon>
-                    </v-btn>
-                </th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr  v-for="location in locations">
-                <td>{{location.name}}
-                    <span class="pull-right">
-                        <button type="button" class="btn btn-light" @click="show(location.id)"><i class="fa fa-eye"></i></button>
-                        <button type="button" class="btn btn-light" @click="showModal(location)"><i class="fa fa-edit"></i></button>
-                    </span>
-                </td>
-            </tr>
-            </tbody>
-        </table>
+        <v-btn small  @click="newLocation()" fab dark color="indigo">
+            <v-icon dark>add</v-icon>
+        </v-btn>
+        <v-card>
+            <v-card-title>
+                Locations
+                <v-spacer></v-spacer>
+                <v-text-field
+                        append-icon="search"
+                        label="Search"
+                        single-line
+                        hide-details
+                        @input="indexTable()"
+                        v-model.lazy="search"
+                        v-debounce="delay"
+                ></v-text-field>
+            </v-card-title>
+            <v-data-table
+                    :headers="headers"
+                    :items="items"
+                    :search="search"
+            >
+                <template slot="items" slot-scope="props">
 
+                    <td>{{ props.item.id }}</td>
+                    <td class="text-xs-right">{{ props.item.name }}</td>
+                    <td class="text-xs-right">{{ props.item.description }}</td>
+                    <td class="text-xs-right">{{ props.item.address }}</td>
+                    <td class="text-xs-right">{{ props.item.phone }}</td>
+                    <td class="text-xs-right">{{ props.item.landline }}</td>
+                    <td class="justify-center layout px-0">
+                        <v-btn icon class="mx-0" @click="show(props.item.id)">
+                            <v-icon color="blue">info</v-icon>
+                        </v-btn>
+                        <v-btn icon class="mx-0" @click="editItem(props.item)">
+                            <v-icon color="teal">edit</v-icon>
+                        </v-btn>
+                        <v-btn icon class="mx-0" @click="deleteItem(props.item)">
+                            <v-icon color="pink">delete</v-icon>
+                        </v-btn>
+                    </td>
+                </template>
+                <v-alert slot="no-results" :value="true" color="error" icon="warning">
+                    Your search for "{{ search }}" found no results.
+                </v-alert>
+            </v-data-table>
+        </v-card>
         <location-new :dialog.sync="addDialog" :room-types="roomTypes"></location-new>
-
     </div>
 </template>
 
@@ -35,12 +58,7 @@
     import LocationNew from './LocationNew.vue'
     import LocationMod from './LocationMod.vue'
     import axios from 'axios'
-
-    // import VModal from 'vue-js-modal'
-    //
-    // Vue.use(VModal, {
-    //     componentName: "new-modal"
-    // })
+    import debounce from '../../tools/debounce/debounce.js'
 
 
     export default {
@@ -49,12 +67,33 @@
 
         mounted() {
             console.log('Component Locations mounted.')
+            this.index();
         },
 
         data() {
             return {
                 addDialog:false,
                 roomTypes:[],
+              search: '',
+              delay: 5000,
+              headers: [
+                {
+                  text: 'ID',
+                  align: 'left',
+                  value: 'id'
+                },
+                {
+                  text: 'Location name',
+                  value: 'name'
+                },
+                { text: 'Description', value: 'description' },
+                { text: 'Address', value: 'address' },
+                { text: 'Phone', value: 'phone' },
+                { text: 'Landline', value: 'landline' },
+              ],
+              items: [
+
+              ]
 
             }
         },
@@ -62,9 +101,20 @@
         methods: {
 
             index() {
-                console.log("refreshing");
-                axios.get('/api/locations').then((response) => {
-                    this.locations = response.data.locations;
+
+              axios.get('/api/locations').then((response) => {
+                this.items = response.data.locations;
+              }).catch((error) => {
+
+              });
+
+            },
+
+            indexTable() { //query locations using the search parameters
+
+                axios.post('/api/locations/search', { query: this.search}).then((response) => {
+                    console.log(response);
+                    this.items = response.data.locations;
                 }).catch((error) => {
 
                 });
@@ -92,7 +142,6 @@
 
                 let em=this;
                 axios.get('/api/rooms').then((response) => {
-                    console.log(response);
 
                     em.roomTypes=response.data.roomTypes;
                     em.addDialog=true;
@@ -136,6 +185,8 @@
             'locationMod': LocationMod,
             'location-new': LocationNew
         },
+
+        directives: {debounce},
 
         props: ['locations']
     }

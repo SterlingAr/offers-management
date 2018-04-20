@@ -176,7 +176,7 @@ class OfferController extends Controller
             return response()->json($newOffer);
         }
 
-        return response()->json($validator->errors()->all(),403);
+        return response()->json($validator->errors()->all(),400);
 
     }
 

@@ -18,8 +18,8 @@ class CreateLocationsTable extends Migration
             $table->string('name');
             $table->text('description');
             $table->string('address');
-            $table->string('phone');
-            $table->string('landline');
+            $table->string('phone')->nullable();
+            $table->string('landline')->nullable();
 //            $table->timestamps();
 
         });

@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 */
 
 Route::group(['middleware' => 'auth:api'], function () {
+
     Route::post('logout', 'Auth\LoginController@logout');
 
     Route::get('/user', function (Request $request) {
@@ -30,6 +31,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/offers/update/{offer}', 'OfferController@update');
 
     Route::get('/locations', 'LocationController@index');
+    Route::post('/locations/search', 'LocationController@indexTable');
     Route::get('/locations/{location_id}', 'LocationController@show');
     Route::post('/locations/store', 'LocationController@store');
 
@@ -37,11 +39,10 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/rooms', 'RoomController@index');
 
 
-
 });
 
 Route::group(['middleware' => 'guest:api'], function () {
-    Route::post('login', 'Auth\LoginController@login');
+    Route::post('login', 'Auth\LoginController@login')->name('login');
     Route::post('register', 'Auth\RegisterController@register');
     Route::post('password/email', 'Auth\ForgotPasswordController@sendResetLinkEmail');
     Route::post('password/reset', 'Auth\ResetPasswordController@reset');
