@@ -218,7 +218,9 @@ class LocationController extends Controller
 
     public function destroy($locationId)
     {
-        $location = Location::where('id', $locationId);
+        $location = Location::where('id', $locationId)->first();
+
+        $location->delete();
 
     }
 }

@@ -35,7 +35,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/locations/{id}', 'LocationController@show');
     Route::post('/locations/store', 'LocationController@store');
     Route::post('/locations/update/{location_id}', 'LocationController@update');
-    Route::post('/locations/delete/{location_id}', 'LocationController@destroy');
+    Route::delete('/locations/delete/{location_id}', 'LocationController@destroy');
 
 
     Route::get('/rooms', 'RoomController@index');

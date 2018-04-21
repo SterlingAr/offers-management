@@ -60,7 +60,6 @@
 
 <script>
 
-    import Location from './Location.vue'
     import LocationNew from './LocationNew.vue'
     import LocationMod from './LocationMod.vue'
     import axios from 'axios'
@@ -183,7 +182,6 @@
         },
 
         components: {
-            'location' : Location,
             'location-mod': LocationMod,
             'location-new': LocationNew
         },

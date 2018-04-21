@@ -51,15 +51,15 @@
                                 v-model="editedLocation.phone"
                                 label="Phone"
                                 :error-messages="errors.collect('phone')"
-                                v-validate="'required|max:20'"
+                                v-validate="'required|max:35'"
                                 data-vv-name="phone"
                         ></v-text-field>
                         <v-text-field
                                 v-model="editedLocation.landline"
                                 label="Landline"
                                 :error-messages="errors.collect('landline')"
-                                v-validate="'required|max:20'"
-                                data-vv-name="Landline"
+                                v-validate="'required|max:35'"
+                                data-vv-name="landline"
                         ></v-text-field>
                         <v-text-field
                                 v-model="editedLocation.description"
@@ -85,10 +85,11 @@
                                             v-model.number="selectedType"
                                             label="Select"
                                             :error-messages="errors.collect('roomType')"
-                                            v-validate="'required'"
+                                            v-validate="'required|numeric'"
                                             data-vv-name="roomType"
-                                            item-value="id"
+                                            item-value="type"
                                             single-line
+                                            required
                                     ></v-select>
                                     <v-container grid-list-md>
                                         <v-layout wrap>
@@ -295,9 +296,13 @@
 
       editItem (item) {
 
+        this.selectedType = '';
+
         this.editedIndex = this.editedLocation.rooms.indexOf(item)
         // this.editedRoom = Object.assign({}, item)
         this.editedRoom = JSON.parse(JSON.stringify(item));
+        console.log( JSON.parse(JSON.stringify(item)));
+
         this.dialogRooms = true
 
       },
@@ -402,6 +407,7 @@
 
       valuesRoom () {
         return {
+          roomType : this.selectedType,
           numberRooms : this.editedRoom.predefined_values.num_rooms,
           pricePerson : this.editedRoom.predefined_values.price_person,
           personNumber : this.editedRoom.predefined_values.person_number,
