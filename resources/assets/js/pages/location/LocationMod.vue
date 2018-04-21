@@ -1,5 +1,6 @@
 <template>
     <div>
+
         <v-dialog
                 v-model="dialog"
                 fullscreen
@@ -9,13 +10,13 @@
         >
             <v-card tile>
                 <v-toolbar card dark color="primary">
-                    <v-btn icon @click.native="$emit('update:dialog', false) " dark>
+                    <v-btn icon @click.native="$emit('update:dialog', false)" dark>
                         <v-icon>close</v-icon>
                     </v-btn>
                     <v-toolbar-title>Adauga o locatie noua</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click.native="createLocation">Save</v-btn>
+                        <v-btn dark flat @click.native="updateLocation">Save</v-btn>
                     </v-toolbar-items>
                     <v-menu bottom right offset-y>
                         <v-btn slot="activator" dark icon>
@@ -24,8 +25,10 @@
 
                     </v-menu>
                 </v-toolbar>
-
                 <v-card-text>
+                    <v-alert type="error" :value="hasErrors" v-for="error in serverSideErrors">
+                        {{error}}
+                    </v-alert>
                     <form>
                         <v-text-field
                                 v-model="editedLocation.name"
@@ -48,14 +51,14 @@
                                 v-model="editedLocation.phone"
                                 label="Phone"
                                 :error-messages="errors.collect('phone')"
-                                v-validate="'max:20'"
+                                v-validate="'required|max:20'"
                                 data-vv-name="phone"
                         ></v-text-field>
                         <v-text-field
                                 v-model="editedLocation.landline"
                                 label="Landline"
                                 :error-messages="errors.collect('landline')"
-                                v-validate="'max:20'"
+                                v-validate="'required|max:20'"
                                 data-vv-name="Landline"
                         ></v-text-field>
                         <v-text-field
@@ -73,13 +76,13 @@
                             <v-btn color="primary" dark slot="activator" class="mb-2">Add room</v-btn>
                             <v-card>
                                 <v-card-title>
-                                    Adauga o camera.
+                                    {{formTitle}}
                                 </v-card-title>
                                 <v-card-text>
                                     <v-select
                                             :items="roomTypes"
                                             item-text="type"
-                                            v-model="selectedType"
+                                            v-model.number="selectedType"
                                             label="Select"
                                             :error-messages="errors.collect('roomType')"
                                             v-validate="'required'"
@@ -116,15 +119,15 @@
                                                         data-vv-name="personNumber"
                                                 ></v-text-field>
                                             </v-flex>
-                                            <v-flex xs12 sm6 md4>
-                                                <v-text-field
-                                                        v-model.number="editedRoom.predefined_values.available_rooms"
-                                                        label="Available rooms"
-                                                        :error-messages="errors.collect('availableRooms')"
-                                                        v-validate="'required|numeric'"
-                                                        data-vv-name="availableRooms"
-                                                ></v-text-field>
-                                            </v-flex>
+                                            <!--<v-flex xs12 sm6 md4>-->
+                                                <!--<v-text-field-->
+                                                        <!--v-model.number="editedRoom.predefined_values.available_rooms"-->
+                                                        <!--label="Available rooms"-->
+                                                        <!--:error-messages="errors.collect('availableRooms')"-->
+                                                        <!--v-validate="'required|numeric'"-->
+                                                        <!--data-vv-name="availableRooms"-->
+                                                <!--&gt;</v-text-field>-->
+                                            <!--</v-flex>-->
                                         </v-layout>
                                     </v-container>
                                 </v-card-text>
@@ -139,7 +142,7 @@
 
                         <v-data-table
                                 :headers="headers"
-                                :items="rooms"
+                                :items="editedLocation.rooms"
                                 hide-actions
                                 class="elevation-1"
                         >
@@ -153,7 +156,7 @@
                                 </td>
                                 <td class="text-xs-left">{{ props.item.predefined_values.price_person }}</td>
                                 <td class="text-xs-left">{{ props.item.predefined_values.person_number }}</td>
-                                <td class="text-xs-left">{{ props.item.predefined_values.available_rooms }}</td>
+                                <!--<td class="text-xs-left">{{ props.item.predefined_values.available_rooms }}</td>-->
                                 <td class="justify-center layout px-0">
                                     <v-btn icon class="mx-0" @click="editItem(props.item)">
                                         <v-icon color="teal">edit</v-icon>
@@ -167,9 +170,6 @@
                                 <!--<v-btn color="primary" @click="initialize">Reset</v-btn>-->
                             </template>
                         </v-data-table>
-
-                        <v-btn >submit</v-btn>
-                        <v-btn >clear</v-btn>
                     </form>
                 </v-card-text>
             </v-card>
@@ -184,6 +184,11 @@
 
   export default {
 
+    beforeMount() {
+
+      console.log(this.editedLocation.rooms)
+    },
+
     mounted() {
       console.log('Component LocationNew mounted.');
       this.$validator.localize('en', this.dictionary)
@@ -195,6 +200,8 @@
         $_veeValidate: {
           validator: 'new'
         },
+        hasErros: false,
+        serverSideErrors: [],
 
         dialogRooms: false,
         headers: [
@@ -203,22 +210,15 @@
           { text: 'Number of rooms', value: 'num_rooms',sortable: false },
           { text: 'Price person', value: 'price_person',sortable: false },
           { text: 'Persons per room', value: 'person_number',sortable: false },
-          { text: 'Available rooms', value: 'available_rooms',sortable: false },
+          // { text: 'Available rooms', value: 'available_rooms',sortable: false },
         ],
 
         rooms: [],
-
+        removals: {
+          rooms : []
+        },
         selectedType : '',
 
-
-        editedLocation : {
-          id: 0,
-          name : '',
-          address: '',
-          description: '',
-          phone: '',
-          landline: ''
-        },
 
         editedIndex: -1,
 
@@ -229,20 +229,21 @@
             price_person: '',
             person_number: '',
             num_rooms: '',
-            available_rooms: ''
+            // available_rooms: ''
           }
         },
 
-        defaultItem: {
+        defaultRoom: {
           id: 0,
           type: '',
           predefined_values : {
             price_person: '',
             person_number: '',
-            number_rooms: '',
-            available_rooms: ''
+            num_rooms: '',
+            // available_rooms: ''
           }
         },
+
 
 
 
@@ -251,10 +252,10 @@
 
     methods: {
 
-      createLocation() {
 
+      updateLocation() {
 
-        this.$validator.validateAll(this.editedLocation).then(result => {
+        this.$validator.validateAll(this.editedLocationValues).then(result => {
 
           if(!result){
             return;
@@ -265,16 +266,23 @@
             rooms : this.rooms
           };
 
-          axios.post('/api/locations/store', {
-            location: location,
+          axios.post('/api/locations/update/'+ this.editedLocation.id, {
+            location: this.editedLocation,
+            removals: this.removals
           }).then((response) => {
             console.log(response);
+            this.$emit('update:dialog', false);
+            this.$emit('update:successUpdate', true);
             //show success dialog.
+            this.hasErrors = false;
+            this.serverSideErrors = '';
 
           }).catch((error) => {
 
             //show error flashbags
             console.log(error);
+            this.hasErrors = true;
+            this.serverSideErrors = error.response.data;
 
           });
 
@@ -285,73 +293,33 @@
       },
 
 
-
-      //creates room with the selected type and predefined details
-      createRoomWithDefaultDetails() {
-
-        let valuesObj = {
-          numberRooms : this.editedRoom.predefined_values.num_rooms,
-          pricePerson : this.editedRoom.predefined_values.price_person,
-          personNumber : this.editedRoom.predefined_values.person_number,
-          availableRooms : this.editedRoom.predefined_values.available_rooms
-        }
-
-        this.$validator.validateAll(valuesObj).then(result => {
-
-          if(!result) {
-            return;
-          }
-
-          let room = {};
-          room.id  = this.selectedType;
-          room.type = this.typeTextValue;
-          room.predefined_values = {};
-          room.predefined_values.num_rooms = this.numberRooms;
-          room.predefined_values.price_person = this.pricePerson;
-          room.predefined_values.person_number = this.personNumber;
-          room.predefined_values.available_rooms = this.availableRooms;
-          this.rooms.push(JSON.parse(JSON.stringify(room)));//push copy of object.
-          this.clearRoomValues();
-          this.close();
-
-        }).catch(() => {
-
-
-        });
-
-      },
-
-      // editRoom(id) {
-      //
-      //   for(let room of rooms) {
-      //     if(room.id === id){
-      //        this.numberRooms = room.predefined_values.numberRooms;
-      //        this.pricePerson = room.predefined_values.pricePerson;
-      //        this.personNumber = room.predefined_values.personNumber;
-      //        this.availableRooms = room.predefined_values.availableRooms;
-      //        return;
-      //     }
-      //   }
-      // },
-
       editItem (item) {
 
-        this.editedIndex = this.rooms.indexOf(item)
-        this.editedRoom = Object.assign({}, item)
+        this.editedIndex = this.editedLocation.rooms.indexOf(item)
+        // this.editedRoom = Object.assign({}, item)
+        this.editedRoom = JSON.parse(JSON.stringify(item));
         this.dialogRooms = true
+
       },
 
       deleteItem (item) {
-        const index = this.rooms.indexOf(item)
-        confirm('Are you sure you want to delete this item?') && this.rooms.splice(index, 1)
+        if(this.roomIsPersisted(item.id)){
+          if(!this.roomAlreadyInRemovals(item.id)){
+            this.removals.rooms.push(item);
+          }
+        }
+
+        const index = this.editedLocation.rooms.indexOf(item)
+        confirm('Are you sure you want to delete this item?') && this.editedLocation.rooms.splice(index, 1)
       },
 
       close () {
-        this.dialogRooms = false
-        setTimeout(() => {
-          this.editedRoom = Object.assign({}, this.defaultItem)
-          this.editedIndex = -1
-        }, 300)
+        this.dialogRooms = false;
+        this.editedRoom = Object.assign({}, this.defaultRoom);
+        this.editedIndex = -1;
+        // setTimeout(() => {
+        //
+        // }, 300);
       },
 
       save () {
@@ -362,12 +330,20 @@
             return;
           }
 
+          this.editedRoom.type = this.typeTextValue;
+
           if (this.editedIndex > -1) {
             this.editedRoom.id = this.selectedType;
-            Object.assign(this.rooms[this.editedIndex], this.editedRoom)
+            Object.assign(this.editedLocation.rooms[this.editedIndex], this.editedRoom)
           } else {
+
+            if(this.roomAlreadyAdded()){
+              alert('Room already added.');
+              return;
+            }
+
             this.editedRoom.id = this.selectedType;
-            this.rooms.push(this.editedRoom)
+            this.editedLocation.rooms.push(this.editedRoom)
           }
           this.close()
         }).catch(error => {
@@ -376,24 +352,45 @@
 
       },
 
-
-      //method to clear rogue values, just in case
-      cleareditedLocation () {
-        this.name = '';
-        this.description = '';
-        this.address = '';
-        this.phone = '';
-        this.landline = '';
-        this.rooms = [];
-        this.$validation.clear();
+      //check if the room is already scheduled for removal.
+      roomAlreadyInRemovals(id) {
+        for(let room of this.removals.rooms ) {
+          if(room.id === id) {
+            return true
+          }
+        }
+        return false;
       },
 
+      //check against original rooms if  the room is new, that way we add removals only the rooms it had previously and not the ones added during the edit.
+      roomIsPersisted(id) {
+        for(let room of this.originalRooms){
+          if(room.id === id) {
+            return true;
+          }
+        }
+        return false;
+      },
 
+      roomAlreadyAdded() {
+        for(let room of this.editedLocation.rooms) {
+          if(room.id === this.selectedType){
+            console.log(room);
+            return true;
+          }
+        }
+        return false;
+      },
 
 
     },
 
     computed: {
+
+      formTitle () {
+        return this.editedIndex === -1 ? 'New Item' : 'Edit Item'
+      },
+
 
       typeTextValue() {
         for(let room of this.roomTypes) {
@@ -408,12 +405,24 @@
           numberRooms : this.editedRoom.predefined_values.num_rooms,
           pricePerson : this.editedRoom.predefined_values.price_person,
           personNumber : this.editedRoom.predefined_values.person_number,
-          availableRooms : this.editedRoom.predefined_values.available_rooms
+          // availableRooms : this.editedRoom.predefined_values.available_rooms
         }
+      },
+
+      editedLocationValues () {
+
+        return {
+          name : this.editedLocation.name,
+          address: this.editedLocation.address,
+          description: this.editedLocation.description,
+          phone: this.editedLocation.phone,
+          landline: this.editedLocation.landline
+        }
+
       }
 
     },
 
-    props: ['roomTypes','dialog','editedLocation']
+    props: ['roomTypes','dialog', 'successUpdate', 'editedLocation', 'originalRooms']
   }
 </script>

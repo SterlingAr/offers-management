@@ -4,6 +4,14 @@
             <v-icon dark>add</v-icon>
         </v-btn>
         <v-card>
+            <v-alert class="animated bounceInRight" type="success" v-model="newLocationSuccess" dismissible>
+                Location created successfully.
+            </v-alert>
+
+            <v-alert class="animated bounceInRight" type="success" v-model="updateLocationSuccess" dismissible>
+               Location updated successfully.
+            </v-alert>
+
             <v-card-title>
                 Locations
                 <v-spacer></v-spacer>
@@ -19,7 +27,7 @@
             </v-card-title>
             <v-data-table
                     :headers="headers"
-                    :items="items"
+                    :items="locations"
                     :search="search"
             >
                 <template slot="items" slot-scope="props">
@@ -31,9 +39,6 @@
                     <td class="text-xs-left">{{ props.item.phone }}</td>
                     <td class="text-xs-leftt">{{ props.item.landline }}</td>
                     <td class="justify-center layout px-0">
-                        <v-btn icon class="mx-0" @click="show(props.item.id)">
-                            <v-icon color="blue">info</v-icon>
-                        </v-btn>
                         <v-btn icon class="mx-0" @click="editItem(props.item)">
                             <v-icon color="teal">edit</v-icon>
                         </v-btn>
@@ -47,8 +52,8 @@
                 </v-alert>
             </v-data-table>
         </v-card>
-        <location-new :dialog.sync="addDialog" :room-types="roomTypes"></location-new>
-        <location-mod :dialog.sync="editDialog" :room-types="roomTypes"  :edited-location="editedLocation" ></location-mod>
+        <location-new :success-new.sync="newLocationSuccess" :dialog.sync="addDialog" :room-types="roomTypes"></location-new>
+        <location-mod :success-update.sync="updateLocationSuccess" :dialog.sync="editDialog" :room-types="roomTypes"  :edited-location="editedLocation" :original-rooms="origRooms"></location-mod>
     </div>
 </template>
 
@@ -75,8 +80,11 @@
             return {
                 addDialog:false,
                 editDialog: false,
+                newLocationSuccess: false,
+                updateLocationSuccess: false,
                 editedLocation: {},
                 roomTypes:[],
+                origRooms: [],
               search: '',
               delay: 5000,
               headers: [
@@ -94,7 +102,7 @@
                 { text: 'Phone', value: 'phone' },
                 { text: 'Landline', value: 'landline' },
               ],
-              items: [
+              locations: [
 
               ]
 
@@ -106,7 +114,7 @@
             index() {
 
               axios.get('/api/locations').then((response) => {
-                this.items = response.data.locations;
+                this.locations = response.data.locations;
               }).catch((error) => {
 
               });
@@ -117,38 +125,44 @@
 
                 axios.post('/api/locations/search', { query: this.search}).then((response) => {
                     console.log(response);
-                    this.items = response.data.locations;
+                    this.locations = response.data.locations;
                 }).catch((error) => {
 
                 });
 
             },
 
-            show(id) {
-
-                axios.get('/api/locations/' + id).then((response) => {
-                    console.log(response);
-                    this.showModal(response.data.location);
-
-
-                }).catch((error) => {
-                    console.log(error);
-                });
-            },
 
             editItem(item) {
-                  console.log(item);
                   let em = this;
 
                   axios.get('/api/rooms').then((response) => {
 
                     em.roomTypes=response.data.roomTypes;
-                    em.editDialog=true;
                     em.editedLocation = item;
+                    em.editDialog=true;
+                    em.origRooms = JSON.parse(JSON.stringify(item.rooms));
+
                   }).catch((error) => {
                     console.log(error);
                   });
+
+
             },
+
+            deleteItem (item) {
+                const index = this.locations.indexOf(item)
+                confirm('Are you sure you want to delete this item?') &&
+                axios.delete('/api/locations/delete/' + item.id).then((response) => {
+                  console.log(response);
+                  alert('deleted');
+                  this.locations.splice(index, 1);
+                }).catch((error) => {
+                  console.log(error);
+                });
+            },
+
+
 
             newLocation() {
                 //intermediary function, for possible future actions
@@ -166,7 +180,6 @@
             },
 
 
-
         },
 
         components: {
@@ -177,6 +190,5 @@
 
         directives: {debounce},
 
-        props: ['locations']
     }
 </script>

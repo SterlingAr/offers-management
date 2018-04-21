@@ -41,7 +41,6 @@ class OfferController extends Controller
 
     public function show($offerId)
     {
-
         //add only the rooms that are in the offer_dates_location_room table.
         $offer = Offer::with('dates.locations')->where('id',$offerId)->first();
 
@@ -263,6 +262,8 @@ class OfferController extends Controller
         foreach($rooms as $room)
         {
             $locationRoom = LocationRoom::where('location_id', $room['predefined_values']['location_id'])->where('room_id', $room['id'])->first();
+
+            // create available_room->length() *  offer_dates_location_room
             $date->locationRooms()->attach($locationRoom, [
                 'price_person' => $room['offer_details']['price_person'],
                 'person_number' => $room['offer_details']['person_number'],

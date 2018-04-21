@@ -23,8 +23,6 @@ class CreateLocationRoomTable extends Migration
             $table->integer('person_number')->unsigned()->nullable();
             $table->integer('available_rooms')->unsigned()->nullable();//decrease by 1 for each offer_dates_location_room row .
 
-            //            $table->timestamps();
-
         });
 
     }
