@@ -31,6 +31,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/offers/update/{offer}', 'OfferController@update');
 
     Route::get('/offers-list','OfferController@getOffersList');
+    Route::get('/available-rooms', 'OfferController@getAvailableRooms');
 
 
 

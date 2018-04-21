@@ -12,7 +12,6 @@ class Sale extends Model
         "email",
         "phone",
         "offer_id",
-        "offer_id",
         "location_id",
         "offer_date_id",
         "total_person_number",

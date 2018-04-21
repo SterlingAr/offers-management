@@ -66,10 +66,10 @@ class OfferController extends Controller
                     $data = \DB::table('offer_dates_location_room')
                         ->where('offer_date_id',$date->id)
                         ->where('location_room_id', $locationRoom->id)
-                        ->select(['price_person','person_number','available_rooms'])
+                        ->select(['price_person','person_number','available_rooms','id as offer_dates_location_room_id'])
                         ->first();
 
-                    if(isset($data))
+                        if(isset($data))
                     {
                         $room = Room::where('id', $locationRoom->room_id)->first();
 
@@ -277,6 +277,21 @@ class OfferController extends Controller
         $offers=Offer::all();
 
         return response()->json(["offers"=>$offers]);
+
+     }
+
+     public function getAvailableRooms(Request $request){
+
+        $rooms= \DB::table('offer_dates_location_room')
+            ->where('offer_date_id',$request->offer_date_id)
+            ->where('location_room_id', $request->location_id)
+            ->join('location_room','offer_dates_location_room.location_room_id',"=","location_room.id")
+            ->join('rooms','location_room.room_id',"=","rooms.id")
+            ->select("offer_dates_location_room.price_person","offer_dates_location_room.person_number","offer_dates_location_room.available_rooms","rooms.type")
+            ->get();
+
+         return response()->json(["availableRooms"=>$rooms]);
+
 
      }
 

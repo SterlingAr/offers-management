@@ -13,6 +13,7 @@ class OfferDate extends Model
 //    protected $dateFormat = 'Y-m-d';
 
     protected $fillable = ['offer_id','start_date', 'end_date'];
+    protected $appends=['range_date'];
 
     public $timestamps = false;
 
@@ -44,6 +45,13 @@ class OfferDate extends Model
     public function getEndDateAttribute($value) {
         return \Carbon\Carbon::parse($value)->format('d-m-Y');
     }
+
+
+    public function getRangeDateAttribute($value) {
+        return $this->start_date." - ".$this->end_date;
+    }
+
+
 
     //one OfferDate instance can have many LocationRoom instances and one LocationRoom
 

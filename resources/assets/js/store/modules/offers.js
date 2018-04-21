@@ -20,6 +20,7 @@ export const actions = {
 
       commit(types.GET_OFFERS, data.offers)
     } catch (e) {
+
     }
   }
 }
