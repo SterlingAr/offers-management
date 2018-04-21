@@ -4,6 +4,14 @@
             <v-icon dark>add</v-icon>
         </v-btn>
         <v-card>
+            <v-alert class="animated bounceInRight" type="success" v-model="newLocationSuccess" dismissible>
+                Location created successfully.
+            </v-alert>
+
+            <v-alert class="animated bounceInRight" type="success" v-model="updateLocationSuccess" dismissible>
+               Location updated successfully.
+            </v-alert>
+
             <v-card-title>
                 Locations
                 <v-spacer></v-spacer>
@@ -19,21 +27,18 @@
             </v-card-title>
             <v-data-table
                     :headers="headers"
-                    :items="items"
+                    :items="locations"
                     :search="search"
             >
                 <template slot="items" slot-scope="props">
 
                     <td>{{ props.item.id }}</td>
-                    <td class="text-xs-right">{{ props.item.name }}</td>
-                    <td class="text-xs-right">{{ props.item.description }}</td>
-                    <td class="text-xs-right">{{ props.item.address }}</td>
-                    <td class="text-xs-right">{{ props.item.phone }}</td>
-                    <td class="text-xs-right">{{ props.item.landline }}</td>
+                    <td class="text-xs-left">{{ props.item.name }}</td>
+                    <td class="text-xs-left">{{ props.item.description }}</td>
+                    <td class="text-xs-left">{{ props.item.address }}</td>
+                    <td class="text-xs-left">{{ props.item.phone }}</td>
+                    <td class="text-xs-leftt">{{ props.item.landline }}</td>
                     <td class="justify-center layout px-0">
-                        <v-btn icon class="mx-0" @click="show(props.item.id)">
-                            <v-icon color="blue">info</v-icon>
-                        </v-btn>
                         <v-btn icon class="mx-0" @click="editItem(props.item)">
                             <v-icon color="teal">edit</v-icon>
                         </v-btn>
@@ -47,14 +52,14 @@
                 </v-alert>
             </v-data-table>
         </v-card>
-        <location-new :dialog.sync="addDialog" :room-types="roomTypes"></location-new>
+        <location-new :success-new.sync="newLocationSuccess" :dialog.sync="addDialog" :room-types="roomTypes"></location-new>
+        <location-mod :success-update.sync="updateLocationSuccess" :dialog.sync="editDialog" :room-types="roomTypes"  :edited-location="editedLocation" :original-rooms="origRooms"></location-mod>
     </div>
 </template>
 
 
 <script>
 
-    import Location from './Location.vue'
     import LocationNew from './LocationNew.vue'
     import LocationMod from './LocationMod.vue'
     import axios from 'axios'
@@ -73,7 +78,12 @@
         data() {
             return {
                 addDialog:false,
+                editDialog: false,
+                newLocationSuccess: false,
+                updateLocationSuccess: false,
+                editedLocation: {},
                 roomTypes:[],
+                origRooms: [],
               search: '',
               delay: 5000,
               headers: [
@@ -91,7 +101,7 @@
                 { text: 'Phone', value: 'phone' },
                 { text: 'Landline', value: 'landline' },
               ],
-              items: [
+              locations: [
 
               ]
 
@@ -103,7 +113,7 @@
             index() {
 
               axios.get('/api/locations').then((response) => {
-                this.items = response.data.locations;
+                this.locations = response.data.locations;
               }).catch((error) => {
 
               });
@@ -114,33 +124,49 @@
 
                 axios.post('/api/locations/search', { query: this.search}).then((response) => {
                     console.log(response);
-                    this.items = response.data.locations;
+                    this.locations = response.data.locations;
                 }).catch((error) => {
 
                 });
 
             },
 
-            show(id) {
 
-                axios.get('/api/locations/' + id).then((response) => {
-                    console.log(response);
-                    this.showModal(response.data.location);
+            editItem(item) {
+                  let em = this;
 
+                  axios.get('/api/rooms').then((response) => {
 
-                }).catch((error) => {
+                    em.roomTypes=response.data.roomTypes;
+                    em.editedLocation = item;
+                    em.editDialog=true;
+                    em.origRooms = JSON.parse(JSON.stringify(item.rooms));
+
+                  }).catch((error) => {
                     console.log(error);
+                  });
+
+
+            },
+
+            deleteItem (item) {
+                const index = this.locations.indexOf(item)
+                confirm('Are you sure you want to delete this item?') &&
+                axios.delete('/api/locations/delete/' + item.id).then((response) => {
+                  console.log(response);
+                  alert('deleted');
+                  this.locations.splice(index, 1);
+                }).catch((error) => {
+                  console.log(error);
                 });
             },
 
-            mod(id) {
 
-            },
 
             newLocation() {
                 //intermediary function, for possible future actions
 
-                let em=this;
+                let em = this;
                 axios.get('/api/rooms').then((response) => {
 
                     em.roomTypes=response.data.roomTypes;
@@ -153,41 +179,14 @@
             },
 
 
-
-            modModal(location){
-                this.$modal.show(LocationMod, {
-                    location: location
-                },{
-                    draggable:true
-                });
-            },
-
-            newModal(roomTypes){
-
-                // this.$modal.show('new', {roomTypes : roomTypes})
-
-                this.$modal.show(LocationNew, {
-                    roomTypes : roomTypes
-                },{
-                    draggable:true,
-                    adaptive:true,
-                    resizable:true,
-                    width:900,
-                    height:650
-                });
-
-            }
-
         },
 
         components: {
-            'location' : Location,
-            'locationMod': LocationMod,
+            'location-mod': LocationMod,
             'location-new': LocationNew
         },
 
         directives: {debounce},
 
-        props: ['locations']
     }
 </script>

@@ -33,7 +33,7 @@ class Location extends Model
 
     public function rooms()
     {
-        return $this->belongsToMany('App\Room')->withPivot('price_person','person_number','available_rooms')->as('predefined_values');
+        return $this->belongsToMany('App\Room')->withPivot('price_person','person_number','num_rooms')->as('predefined_values');
         ;
     }
 

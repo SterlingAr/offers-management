@@ -11,7 +11,8 @@ class LocationRoom extends Model
 
     protected $table = 'location_room';
 
-    protected $fillable = ['location_id', 'room_id', 'price'];
+//    protected $fillable = ['location_id', 'room_id', 'price', 'num_rooms'];
+    protected $fillable = ['price', 'num_rooms'];
 
     public function offerDates()
     {

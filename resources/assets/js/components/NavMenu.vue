@@ -36,6 +36,7 @@ export default {
       items: [
         { title: 'Dashboard', icon: 'dashboard', route: { name: 'home' } },
         { title: 'Locatii', icon: 'business', route: { name: 'locations' } },
+        { title: 'Oferte', icon: 'new_releases', route: { name: 'offers' } },
         { title: 'Vanzari', icon: 'credit_card', route: { name: 'vanzari' } }
       ]
     }
