@@ -13,6 +13,7 @@ import Loading from './Loading'
 // Load layout components dynamically.
 const requireContext = require.context('../layouts', false, /.*\.vue$/)
 
+
 const layouts = requireContext.keys()
   .map(file =>
     [file.replace(/(^.\/)|(\.vue$)/g, ''), requireContext(file)]
@@ -30,7 +31,6 @@ export default {
 
   metaInfo () {
     const { appName } = window.config
-
     return {
       title: appName,
       titleTemplate: `%s · ${appName}`

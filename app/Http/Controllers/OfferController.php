@@ -272,5 +272,14 @@ class OfferController extends Controller
     }
 
 
+    public function getOffersList(){
+
+        $offers=Offer::all();
+
+        return response()->json(["offers"=>$offers]);
+
+     }
+
+
 
 }

@@ -30,6 +30,10 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/offers/add', 'OfferController@store');
     Route::post('/offers/update/{offer}', 'OfferController@update');
 
+    Route::get('/offers-list','OfferController@getOffersList');
+
+
+
     Route::get('/locations', 'LocationController@index');
     Route::post('/locations/search', 'LocationController@indexTable');
     Route::get('/locations/{location_id}', 'LocationController@show');
