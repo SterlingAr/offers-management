@@ -1,6 +1,5 @@
 <template>
     <div>
-
         <v-dialog
                 v-model="dialog"
                 fullscreen
@@ -25,6 +24,8 @@
                     </v-menu>
                 </v-toolbar>
                 <v-card-text>
+
+
                     <v-alert type="error" :value="hasErrors" v-for="error in serverSideErrors">
                         {{error}}
                     </v-alert>

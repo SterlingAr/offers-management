@@ -4,6 +4,9 @@
             <v-icon dark>add</v-icon>
         </v-btn>
         <v-card>
+            <v-alert class="animated bounceInRight" type="success" v-model="newOfferSuccess" dismissible>
+                Offer created successfully.
+            </v-alert>
             <v-alert class="animated bounceInRight" type="success"  dismissible>
                 Offer created successfully.
             </v-alert>
@@ -49,7 +52,7 @@
             </v-data-table>
         </v-card>
         <offer-edit :dialog.sync="dialogEdit"></offer-edit>
-        <offer-new :dialog.sync="dialogNew"></offer-new>
+        <offer-new :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new>
     </div>
 </template>
 
@@ -57,6 +60,7 @@
 <script>
     import OfferNew from './OfferNew.vue'
     import OfferEdit from './OfferEdit.vue'
+    import {mapActions,mapGetters} from 'vuex'
     import axios from 'axios'
     import debounce from '../../tools/debounce/debounce.js'
 
@@ -64,11 +68,12 @@
         mounted() {
             console.log('Component Offers mounted.')
             this.indexTable();
+           this.getLocations();
         },
 
         data() {
             return {
-
+              newOfferSuccess: false,
               search: '',
               delay: 5000,
               headers: [
@@ -89,6 +94,12 @@
         },
 
         methods: {
+
+
+          ...mapActions({
+            getLocations : 'getLocations'
+          }),
+
 
           indexTable() { //query locations using the search parameters
             axios.post('/api/offers/search', { query: this.search}).then((response) => {

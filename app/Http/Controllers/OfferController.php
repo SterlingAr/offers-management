@@ -159,10 +159,6 @@ class OfferController extends Controller
             'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
             'dates.*.locations.*.id' => 'exists:locations,id',
             'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
-            'dates.*.locations.*.rooms.*.offer_details.price_person' => 'nullable|numeric',
-            'dates.*.locations.*.rooms.*.offer_details.num_rooms' => 'nullable|numeric',
-            'dates.*.locations.*.rooms.*.offer_details.person_number' => 'nullable|numeric',
-
         ];
 
         $validator = Validator::make($newOffer, $rules);
@@ -236,6 +232,20 @@ class OfferController extends Controller
                    $this->addLocations($newDate, $date['locations']);
                }
 
+               if(isset($date['offerDateLocationRooms'])){
+
+                   foreach($date['offerDateLocationRooms'] as $roomDetails) {
+
+                       $locationRoom = LocationRoom::where('location_id', $roomDetails['location_id'])->where('room_id', $roomDetails['room_id'])->first();
+
+                       $newDate->locationRooms()->attach($locationRoom, [
+                           'price_person' => $roomDetails['offer_details']['price_person'],
+                           'person_number' => $roomDetails['offer_details']['person_number']
+                       ]);
+                   }
+
+               }
+
                $offer->dates()->save($newDate);
         }
     }
@@ -250,10 +260,11 @@ class OfferController extends Controller
         {
             $loc  = Location::where('id', $location['id'])->first();
 
-            if(isset($location['rooms']))
-            {
-                $this->addRooms($date, $location['rooms']);
-            }
+//            if(isset($location['rooms']))
+//            {
+//                $this->addRooms($date, $location['rooms']);
+//            }
+
             $date->locations()->attach($loc);
         }
 
