@@ -11,3 +11,4 @@ export const RESPONSE_MSG = 'RESPONSE_MSG'
 export const CLEAR_MSG = 'CLEAR_MSG'
 
 export const GET_OFFERS = 'GET_OFFERS'
+export const GET_LOCATIONS = 'GET_LOCATIONS'

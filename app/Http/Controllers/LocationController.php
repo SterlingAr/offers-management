@@ -21,7 +21,6 @@ class LocationController extends Controller
 
     public function index(Request $request)
     {
-//        $locations = Location::all();
         $locations = Location::with('rooms')->get();
         return response()->json(['locations' => $locations]);
     }
@@ -164,7 +163,6 @@ class LocationController extends Controller
         if(!$editedLocation) {
             return response()->json(['No data was sent'],400);
         }
-//        dd(json_encode($editedLocation));
 
         //should be refactorized into a method
         $rules = [
@@ -208,7 +206,6 @@ class LocationController extends Controller
 
 
         if(isset($values['removals'])) {
-
             foreach($values['removals']['rooms'] as $room) {
                 $location->rooms()->detach($room['id']);
             }
@@ -219,7 +216,6 @@ class LocationController extends Controller
     public function destroy($locationId)
     {
         $location = Location::where('id', $locationId)->first();
-
         $location->delete();
 
     }

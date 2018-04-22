@@ -22,7 +22,6 @@
                         <v-btn slot="activator" dark icon>
                             <v-icon>more_vert</v-icon>
                         </v-btn>
-
                     </v-menu>
                 </v-toolbar>
                 <v-card-text>
@@ -196,6 +195,7 @@
                 $_veeValidate: {
                   validator: 'new'
                 },
+
                 hasErros: false,
                 serverSideErrors: [],
 

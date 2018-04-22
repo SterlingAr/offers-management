@@ -19,5 +19,9 @@ class LocationRoom extends Model
         return $this->belongsToMany('App\OfferDate','offer_dates_location_room');
     }
 
+    public function room() {
+        return $this->belongsTo('App\Room');
+    }
+
 
 }
