@@ -25,7 +25,7 @@
 
                     </v-toolbar>
                     <v-layout row wrap  justify-space-between>
-                        <v-flex xs12 sm8 md8 lg8 >
+                        <v-flex xs12 md12 lg12 sm12  >
                             <form>
                                 <v-text-field
                                         label="Offer title"
@@ -45,6 +45,30 @@
                                 ></v-text-field>
                             </form>
                         </v-flex>
+                        <v-flex xs12 md12 lg12 sm12 >
+
+                                    <p class="headline">Add location</p>
+                                </v-flex>
+                                <v-flex xs4>
+                                    <v-select
+                                            label="Select"
+                                            :items="locations"
+                                            v-model="selectedLocationID"
+                                            item-text="name"
+                                            item-value="id"
+                                    ></v-select>
+                                    <v-btn
+                                            dark
+                                            color="blue"
+                                            class="right"
+                                            @click="addLocation()"
+
+                                    >
+                                        <v-icon>add</v-icon>
+                                    </v-btn>
+                        </v-flex>
+
+
                         <v-flex xs12 sm4 md3 lg4 >
                             <p class="headline center">Add a Date</p>
                             <v-flex  class="animated fadeInDown">
@@ -105,31 +129,8 @@
                                 <v-icon>add</v-icon>
                             </v-btn>
                         </v-flex>
-                        <v-flex xs12 md12 lg12 sm12 >
-                            <v-layout row wrap>
-                                <v-flex xs12 md12 lg12 sm12>
-                                    <p class="headline">Add location</p>
-                                </v-flex>
-                                <v-flex xs4>
-                                    <v-select
-                                            label="Select"
-                                            :items="locations"
-                                            v-model="selectedLocationID"
-                                            item-text="name"
-                                            item-value="id"
-                                    ></v-select>
-                                    <v-btn
-                                            dark
-                                            color="blue"
-                                            class="right"
-                                            @click="addLocation()"
 
-                                    >
-                                        <v-icon>add</v-icon>
-                                    </v-btn>
-                                </v-flex>
-                            </v-layout>
-                        </v-flex>
+
                         <v-flex xs12 md12 lg12 sm12 v-if="newOffer.dates.length > 0">
                             <v-tabs
                                     dark
@@ -142,7 +143,7 @@
                                         :key="date.id"
                                         :href="'#tab-' + date.id"
                                 >
-                                   s{{ date.start_date }} - {{ date.end_date }}
+                                   {{ date.start_date }} - {{ date.end_date }}
                                 </v-tab>
                                 <v-tabs-items>
                                     <v-tab-item
@@ -154,7 +155,7 @@
                                             <v-expansion-panel-content v-for="location in date.locations" >
                                                 <div slot="header">{{location.name}}</div>
                                                 <v-card>
-                                                    <v-card-text v-if="location.rooms.length > 0">
+                                                    <v-card-text >
                                                         <v-data-table
                                                                 :headers="roomHeaders"
                                                                 :items="location.rooms"
@@ -168,12 +169,39 @@
                                                                     <v-btn icon class="mx-0" @click="editRoom(props.item,date,location)">
                                                                         <v-icon color="teal">edit</v-icon>
                                                                     </v-btn>
-                                                                    <v-btn icon class="mx-0" @click="deleteRoom(props.item)">
+                                                                    <v-btn icon class="mx-0" @click="deleteRoom(date,location, props.item)">
                                                                         <v-icon color="pink">delete</v-icon>
                                                                     </v-btn>
                                                                 </td>
                                                             </template>
+
                                                         </v-data-table>
+                                                        <v-card-text v-if="addingRoom">
+                                                            <v-select
+                                                                    label="Select"
+                                                                    :items="originalRooms"
+                                                                    item-text="type"
+                                                                    item-value="id"
+                                                                    v-model="selectedOriginalRoomID"
+                                                            ></v-select>
+                                                        </v-card-text>
+                                                        <v-btn
+                                                                v-show="!addingRoom"
+                                                                @click="fetchRooms(location.id)"
+                                                                class="right"
+                                                                color="blue"
+                                                        >
+                                                            Add
+                                                        </v-btn>
+
+                                                        <v-btn
+                                                                v-show="addingRoom"
+                                                                @click="addRoom(date,location) "
+                                                                class="right"
+                                                                color="blue"
+                                                        >
+                                                            Confirm
+                                                        </v-btn>
                                                     </v-card-text>
                                                 </v-card>
                                             </v-expansion-panel-content>
@@ -283,7 +311,7 @@
 
           dateLocationRoomsHeaders: [
             {text: "Price person", value: 'price_person'},
-            {text: "Num person", value: 'person_number'}
+            {text: "Person number", value: 'person_number'}
           ],
 
           startDate: null,
@@ -294,6 +322,9 @@
           editRoomDialog:false,
           editRooms: [],
           currentEditedRoom: {},
+          addingRoom : false,
+          originalRooms: [],
+          selectedOriginalRoomID : '',
 
           newOffer : {
             title: '',
@@ -333,6 +364,19 @@
           getLocations : 'getLocations'
         }),
 
+
+        createOffer() {
+
+          axios.post('/api/offers/store',{newOffer: this.newOffer}).then((response) => {
+
+            console.log(error);
+
+          }).catch((error) => {
+
+            console.log(error);
+
+          })
+        },
 
         addDate() {
           let date = {
@@ -378,6 +422,24 @@
             }
         },
 
+        //same as above, but only for one room.
+        createOfferDateLocationRoom (date,location,room) {
+            let num = room.predefined_values.num_rooms;
+            if(num > 0){
+              for(let i = 0; i < num; i++) {
+                let r = {};
+                r.location_id = location.id;
+                r.room_id = room.id;
+                r.type = room.type;
+                r.num_rooms = room.predefined_values.num_rooms;
+                r.offer_details = {};
+                r.offer_details.price_person = room.predefined_values.price_person;
+                r.offer_details.person_number = room.predefined_values.person_number;
+                date.offerDateLocationRooms.push(r);
+              }
+            }
+        },
+
         addLocation() {
             let index = this.selectedLocations.indexOf(this.selectedLocation)
             if(index === -1) {
@@ -390,6 +452,49 @@
               }
 
             } else {alert('location already added');}
+        },
+
+        addRoom(date,location) {
+          for (let r of location.rooms) {
+            console.log(r)
+            console.log(this.selectedOriginalRoomID)
+            if(r.id === this.selectedOriginalRoomID) {
+              alert('Romm type already exists in the location')
+              return;
+            }
+          }
+
+          let room = this.findRoom(location);
+          location.rooms.push(room);
+          this.createOfferDateLocationRoom(date,location,room);
+        },
+
+        findRoom(location) {
+          for(let loc of this.locations) {
+            if(location.id === loc.id ) {
+              for(let room of loc.rooms){
+                if(room.id === this.selectedOriginalRoomID)
+                {
+                  return JSON.parse(JSON.stringify(room));
+                }
+              }
+            }
+          }
+          return false;
+        },
+
+        fetchRooms(locationId)
+        {
+          this.originalRooms = [];
+
+          for(let location of this.locations) {
+            if(location.id === locationId)
+            {
+               this.originalRooms = JSON.parse(JSON.stringify(location.rooms));
+               this.addingRoom = true;
+               return;
+            }
+          }
         },
 
         //To edit all variations of this room.
@@ -426,8 +531,35 @@
 
         },
 
-        deleteRoom(item) {
-          console.log(item);
+        deleteRoom(date,location,room) {
+
+          let index = location.rooms.indexOf(room)
+
+          let yes = confirm('Are you sure you want to delete this item?');
+          console.log(yes)
+            if(yes) {
+
+              let removals = [];
+              for(let r of date.offerDateLocationRooms) {
+                console.log(room.id);
+                if(r.room_id === room.id && r.location_id === location.id) {
+                  removals.push(date.offerDateLocationRooms.indexOf(r));
+                }
+              }
+              // console.log(removals);
+              // let i = date.offerDateLocationRooms.length-1;
+              // while (i--) {
+              //     date.offerDateLocationRooms.splice(j,1);
+              // }
+
+              let newOfferDate = date.offerDateLocationRooms.filter(function(r) {
+                return !(r.room_id === room.id && r.location_id === location.id)
+              });
+
+              console.log(newOfferDate);
+              date.offerDateLocationRooms = newOfferDate;
+              location.rooms.splice(index, 1);
+            }
         }
       },
 
@@ -439,7 +571,7 @@
         selectedLocation() {
           for(let location of this.locations) {
             if(location.id === this.selectedLocationID){
-              return location;
+              return JSON.parse(JSON.stringify(location));
             }
           }
         }
