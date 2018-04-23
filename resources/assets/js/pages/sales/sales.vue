@@ -13,6 +13,7 @@
                 transition="dialog-bottom-transition"
                 scrollable
         >
+
         <v-card tile>
             <v-toolbar card dark color="primary">
                 <v-btn icon @click.native="addModal = false" dark>
@@ -143,6 +144,9 @@
     import axios from 'axios'
     export default {
         name:"Vanzari",
+        metaInfo () {
+            return { title: "Vanzari" }
+        },
         data(){
             return {
                 addModal:false,
