@@ -15,7 +15,7 @@
                     <v-toolbar-title>Editeaza oferta</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click.native="createOffer">Save</v-btn>
+                        <v-btn dark flat @click.native="createOffer">Actualizeaza</v-btn>
                     </v-toolbar-items>
                     <v-menu bottom right offset-y>
                         <v-btn slot="activator" dark icon>

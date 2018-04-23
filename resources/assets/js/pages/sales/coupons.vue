@@ -18,7 +18,7 @@
                <td class="text-xs-left">{{ props.item.code }}</td>
                <td class="text-xs-left">{{ props.item.reedems }}</td>
                <td class="justify-center layout px-0">
-                   <v-btn icon class="mx-0" @click="editItem(props.item)">
+                   <v-btn icon class="mx-0" @click="updateCoupon(props.item)">
                        <v-icon color="teal">edit</v-icon>
                    </v-btn>
                    <v-btn icon class="mx-0" @click="deleteItem(props.item)">
@@ -41,7 +41,7 @@
 
           <v-card>
             <v-card-title>
-               <span class="headline">Adauga Cupon</span>
+               <span class="headline"><span v-if="couponModel.edit">Actualizeaza</span> <span v-else>Adauga</span> Cupon</span>
             </v-card-title>
             <v-card-text>
                 <v-form v-model="couponModel.valid">
@@ -84,10 +84,12 @@
         data(){
             return {
                 coupons:[],
+                search:'',
                 addModal:false,
                 busy:false,
                 couponModel:{
                     valid:false,
+                    edit:false,
                     code:"",
                     reedems:20,
 
@@ -118,10 +120,22 @@
         },
 
         methods:{
+
+            updateCoupon(model){
+                this.couponModel={
+                    code:model.code,
+                    valid:false,
+                    edit:true,
+                    reedems:model.reedems,
+
+                };
+                this.addModal=true;
+            },
             addModalInit(){
                 this.couponModel={
                     code:"",
                     valid:false,
+                    edit:false,
                     reedems:20,
 
                 };

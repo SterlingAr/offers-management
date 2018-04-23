@@ -5,15 +5,15 @@
         </v-btn>
         <v-card>
             <v-alert class="animated bounceInRight" type="success" v-model="newLocationSuccess" dismissible>
-                Location created successfully.
+               Locatie creata cu succes
             </v-alert>
 
             <v-alert class="animated bounceInRight" type="success" v-model="updateLocationSuccess" dismissible>
-               Location updated successfully.
+                Locatie actualizata cu succes
             </v-alert>
 
             <v-card-title>
-                Locations
+                Locatii
                 <v-spacer></v-spacer>
                 <v-text-field
                         append-icon="search"
@@ -48,7 +48,7 @@
                     </td>
                 </template>
                 <v-alert slot="no-results" :value="true" color="error" icon="warning">
-                    Your search for "{{ search }}" found no results.
+                    CAutare pentru "{{ search }}" nu are rezultate
                 </v-alert>
             </v-data-table>
         </v-card>
@@ -93,13 +93,13 @@
                   value: 'id'
                 },
                 {
-                  text: 'Location name',
+                  text: 'Nume locatie',
                   value: 'name'
                 },
-                { text: 'Description', value: 'description' },
-                { text: 'Address', value: 'address' },
-                { text: 'Phone', value: 'phone' },
-                { text: 'Landline', value: 'landline' },
+                { text: 'Descriere', value: 'description' },
+                { text: 'Adresa', value: 'address' },
+                { text: 'Telefon', value: 'phone' },
+                { text: 'Telefon fix', value: 'landline' },
               ],
               locations: [
 

@@ -5,21 +5,21 @@
         </v-btn>
         <v-card>
             <v-alert class="animated bounceInRight" type="success" v-model="newOfferSuccess" dismissible>
-                Offer created successfully.
+                Oferta creata cu succes
             </v-alert>
             <v-alert class="animated bounceInRight" type="success"  dismissible>
-                Offer created successfully.
+                Oferta creata cu succes
             </v-alert>
 
             <v-alert class="animated bounceInRight" type="success"  dismissible>
-                Offer updated successfully.
+                Oferta actualizata cu succes
             </v-alert>
             <v-card-title>
                 Offers
                 <v-spacer></v-spacer>
                 <v-text-field
                         append-icon="search"
-                        label="Search"
+                        label="Cauta oferta"
                         single-line
                         hide-details
                         @input="indexTable()"
@@ -47,7 +47,7 @@
                     </td>
                 </template>
                 <v-alert slot="no-results" :value="true" color="error" icon="warning">
-                    Your search for "{{ search }}" found no results.
+                   Cautarea pentru "{{ search }}" nu are rezultate.
                 </v-alert>
             </v-data-table>
         </v-card>
@@ -78,8 +78,8 @@
               delay: 5000,
               headers: [
                 { text: 'ID', align: 'left', value: 'id'},
-                { text: 'Offer title', value: 'title'},
-                { text: 'Description', value: 'description' },
+                { text: 'Titlu oferta', value: 'title'},
+                { text: 'Descriere', value: 'description' },
               ],
 
               offers: [
@@ -120,7 +120,7 @@
 
           deleteOffer(offer) {
             const index = this.offers.indexOf(offer)
-            confirm('Are you sure you want to delete this item?') &&
+            confirm('Esti sigur ca doresti sa stergi oferta?') &&
 
             axios.delete('/api/offers/delete/' + offer.id).then((response) => {
               console.log(response);

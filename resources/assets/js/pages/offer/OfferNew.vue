@@ -12,10 +12,10 @@
                     <v-btn icon @click.native="$emit('update:dialog', false)" dark>
                         <v-icon>close</v-icon>
                     </v-btn>
-                    <v-toolbar-title>Adauga o locatie noua</v-toolbar-title>
+                    <v-toolbar-title>Adauga o oferta noua</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click.native="createOffer">Save</v-btn>
+                        <v-btn dark flat @click.native="createOffer">Salveaza</v-btn>
                     </v-toolbar-items>
                     <v-menu bottom right offset-y>
                         <v-btn slot="activator" dark icon>
@@ -36,7 +36,7 @@
                             <v-flex xs12 md6 lg6 sm12>
                                 <form>
                                     <v-text-field
-                                            label="Offer title"
+                                            label="Titlu oferta"
                                             v-model="newOffer.title"
                                             :error-messages="errors.collect('title')"
                                             v-validate="'required|max:255'"
@@ -45,7 +45,7 @@
                                     ></v-text-field>
                                     <v-text-field
                                             v-model="newOffer.description"
-                                            label="Description"
+                                            label="Descriere oferta"
                                             :textarea=true
                                             :error-messages="errors.collect('description')"
                                             v-validate="'required|max:1500'"
@@ -57,7 +57,7 @@
 
 
                             <v-flex xs12 md6 lg6 sm12>
-                                <p class="headline center">Add a Date</p>
+                                <p class="headline center">Adauga o data</p>
                                     <v-dialog
                                             ref="dialog1"
                                             persistent
@@ -69,7 +69,7 @@
                                     >
                                         <v-text-field
                                                 slot="activator"
-                                                label="Start date"
+                                                label="Data inceput"
                                                 v-model="startDate"
                                                 prepend-icon="event"
                                                 lazy
@@ -95,7 +95,7 @@
                                     >
                                         <v-text-field
                                                 slot="activator"
-                                                label="End date"
+                                                label="Data sfarsit"
                                                 v-model="endDate"
                                                 prepend-icon="event"
                                                 lazy
@@ -122,7 +122,7 @@
                             </v-flex>
 
                             <v-flex  xs12 sm12 md12 lg12 v-if="newOffer.dates.length>0">
-                                <p class="headline">Add location</p>
+                                <p class="headline">Adauga o locatie </p>
                                 <v-select
                                         label="Select"
                                         :items="locations"
@@ -190,7 +190,7 @@
                                                             </v-data-table>
                                                             <v-card-text v-if="addingRoom">
                                                                 <v-select
-                                                                        label="Select"
+                                                                        label="Selecteaza"
                                                                         :items="originalRooms"
                                                                         item-text="type"
                                                                         item-value="id"
@@ -231,11 +231,11 @@
                             <v-icon>close</v-icon>
                         </v-btn>
                         <v-toolbar-title>
-                            Editing room of type
+                            Editare tip camera
                             <b>{{ currentEditedRoom.type }}</b> , click on the cell to edit.
                         </v-toolbar-title>
                         <v-toolbar-items>
-                            <v-btn dark right flat @click.native="createOffer">Save</v-btn>
+                            <v-btn dark right flat @click.native="createOffer">Salveaza</v-btn>
                         </v-toolbar-items>
 
                     </v-toolbar>
@@ -256,10 +256,10 @@
                                         persistent
                                 >
                                     <div>{{ props.item.offer_details.price_person }}</div>
-                                    <div slot="input" class="mt-3 title">Update price person</div>
+                                    <div slot="input" class="mt-3 title">Actualizeaza pret pe persoana</div>
                                     <v-text-field
                                             slot="input"
-                                            label="Edit"
+                                            label="Editeaza"
                                             v-model="props.item.offer_details.price_person"
                                             single-line
                                             autofocus
@@ -274,10 +274,10 @@
                                         persistent
                                 >
                                     <div>{{ props.item.offer_details.person_number }}</div>
-                                    <div slot="input" class="mt-3 title">Update person number</div>
+                                    <div slot="input" class="mt-3 title">Update numar persoane</div>
                                     <v-text-field
                                             slot="input"
-                                            label="Edit"
+                                            label="Editeaza"
                                             v-model="props.item.offer_details.person_number"
                                             single-line
                                             autofocus
@@ -330,8 +330,8 @@
 
           dateLocationRoomsHeaders: [
             { text: 'ID', value: 'id' },
-            {text: "Price person", value: 'price_person'},
-            {text: "Person number", value: 'person_number'}
+            {text: "Pret pe persoana", value: 'price_person'},
+            {text: "Numar persoane", value: 'person_number'}
           ],
 
           startDate: null,
