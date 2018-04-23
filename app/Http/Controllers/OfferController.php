@@ -41,9 +41,11 @@ class OfferController extends Controller
 
     public function show($offerId)
     {
+
         //add only the rooms that are in the offer_dates_location_room table.
         $offer = Offer::with('dates.locations')->where('id',$offerId)->first();
 
+        //locations and rooms belonging to this offer
         $selectedLocations = [];
 
         foreach($offer->dates as $date)
@@ -52,9 +54,9 @@ class OfferController extends Controller
             {
 
                 $rooms = [];
+                $selectedRooms = [];
 
-                $loc = Location::with('rooms')->where('id',$location->id)->first();
-                array_push($selectedLocations,$loc);
+                $loc = Location::where('id',$location->id)->first();
 
                 $locationRooms = LocationRoom::where('location_id',$location->id)->get();
 
@@ -65,31 +67,44 @@ class OfferController extends Controller
                     $data = \DB::table('offer_dates_location_room')
                         ->where('offer_date_id',$date->id)
                         ->where('location_room_id', $locationRoom->id)
-                        ->select(['price_person','person_number','available_rooms'])
-                        ->first();
+                        ->select(['id','price_person','person_number','num_rooms'])
+                        ->get();
 
                     if(isset($data))
                     {
-                        $room = Room::where('id', $locationRoom->room_id)->first();
 
-                        $room->predefined_values = \DB::table('location_room')
-                            ->where('location_id', $location->id)
-                            ->where('room_id', $room->id)
-                            ->select(['price_person','person_number','available_rooms'])->first();
+                        foreach($data as $d){
+                            $room = Room::where('id', $locationRoom->room_id)->first();
+                            array_push($selectedRooms,$room);
 
-                        $room->offer_details = $data;
+                            $room->predefined_values = \DB::table('location_room')
+                                ->where('location_id', $location->id)
+                                ->where('room_id', $room->id)
+                                ->select(['price_person','person_number','num_rooms'])->first();
 
-                        array_push($rooms, $room);
+                            $room->offer_details = $d;
+
+                            array_push($rooms, $room);
+                        }
+
+
+
 
                     } else { continue; }
 
                 }
+
+                $loc->rooms = $selectedRooms;
+                array_push($selectedLocations,$loc);
+
 
                 $location->rooms = $rooms;
             }
         }
 
         $offer->selectedLocations = $selectedLocations;
+
+
 
         return response()->json([
             'offer' => $offer
@@ -102,36 +117,29 @@ class OfferController extends Controller
     public function index(Request $request)
     {
 
-        $data = Offer::select([
+
+    }
+
+    public function indexTable(Request $request) {
+        $offers = Offer::select([
             'id',
             'title',
             'description'
         ]);
 
-
         if(!empty($request->query)){
-            $all=$request->toArray();
-            $search=$all['query'];
 
-            $data->where(function ($query) use ($search) {
+            $all = $request->toArray();
+            $search = $all['query'];
+            $offers->where(function ($query) use ($search) {
                 $query->where("title", "like", "%$search%")
                     ->orWhere("description", "like", "%$search%");
             });
         }
 
-
-        $count = $data->count();
-        $data->limit($request->limit)
-            ->skip($request->limit * ($request->page-1));
-
-        if (isset($request->orderBy) && $request->orderBy):
-            $direction = $request->ascending==1?"ASC":"DESC";
-            $data->orderBy( $request->orderBy,$direction);
-        endif;
-
-
-        return response()->json(["data"=>$data->get()->toArray(),"count"=>$count]);
-
+        return response()->json([
+            "offers" => $offers->get()->toArray()
+        ]);
     }
 
 
@@ -151,10 +159,6 @@ class OfferController extends Controller
             'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
             'dates.*.locations.*.id' => 'exists:locations,id',
             'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
-            'dates.*.locations.*.rooms.*.offer_details.price_person' => 'nullable|numeric',
-            'dates.*.locations.*.rooms.*.offer_details.available_rooms' => 'nullable|numeric',
-            'dates.*.locations.*.rooms.*.offer_details.person_number' => 'nullable|numeric',
-
         ];
 
         $validator = Validator::make($newOffer, $rules);
@@ -199,17 +203,12 @@ class OfferController extends Controller
 
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Offer  $offer
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Offer $offer)
+
+    public function destroy($offerID)
     {
+        $response = Offer::where('id', $offerID)->first()->delete();
 
-//        $offer->delete();
-
+        return $response ? response()->json(['status' => 'Offer deleted'],200) : response()->json(['status' => 'Offer could not be deleted'], 404);
     }
 
 
@@ -218,7 +217,6 @@ class OfferController extends Controller
     //adds an array of dates to an offer
     private function addDates(Offer $offer, array $dates)
     {
-
         foreach($dates as $date)
         {
 
@@ -233,6 +231,21 @@ class OfferController extends Controller
                if(isset($date['locations'])) {
                    $this->addLocations($newDate, $date['locations']);
                }
+
+               if(isset($date['offerDateLocationRooms'])){
+
+                   foreach($date['offerDateLocationRooms'] as $roomDetails) {
+
+                       $locationRoom = LocationRoom::where('location_id', $roomDetails['location_id'])->where('room_id', $roomDetails['room_id'])->first();
+
+                       $newDate->locationRooms()->attach($locationRoom, [
+                           'price_person' => $roomDetails['offer_details']['price_person'],
+                           'person_number' => $roomDetails['offer_details']['person_number']
+                       ]);
+                   }
+
+               }
+
                $offer->dates()->save($newDate);
         }
     }
@@ -247,10 +260,11 @@ class OfferController extends Controller
         {
             $loc  = Location::where('id', $location['id'])->first();
 
-            if(isset($location['rooms']))
-            {
-                $this->addRooms($date, $location['rooms']);
-            }
+//            if(isset($location['rooms']))
+//            {
+//                $this->addRooms($date, $location['rooms']);
+//            }
+
             $date->locations()->attach($loc);
         }
 
@@ -263,12 +277,17 @@ class OfferController extends Controller
         {
             $locationRoom = LocationRoom::where('location_id', $room['predefined_values']['location_id'])->where('room_id', $room['id'])->first();
 
-            // create available_room->length() *  offer_dates_location_room
-            $date->locationRooms()->attach($locationRoom, [
-                'price_person' => $room['offer_details']['price_person'],
-                'person_number' => $room['offer_details']['person_number'],
-                'available_rooms' => $room['offer_details']['available_rooms'],
-            ]);
+            // create num_rooms->length() *  offer_dates_location_room
+            $num_rooms = $room['offer_details']['num_rooms'];
+
+            for($i = 0; $i<=$num_rooms; $i++)
+            {
+                $date->locationRooms()->attach($locationRoom, [
+                    'price_person' => $room['offer_details']['price_person'],
+                    'person_number' => $room['offer_details']['person_number'],
+                    'num_rooms' => $room['offer_details']['num_rooms'],
+                ]);
+            }
         }
     }
 
@@ -280,7 +299,4 @@ class OfferController extends Controller
         return response()->json(["offers"=>$offers]);
 
      }
-
-
-
 }
