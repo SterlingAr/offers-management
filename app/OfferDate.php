@@ -27,7 +27,7 @@ class OfferDate extends Model
     public function locationRooms()
     {
         return $this->belongsToMany('App\LocationRoom','offer_dates_location_room')
-            ->withPivot('price_person','person_number','available_rooms')->as('offer_details');
+            ->withPivot('price_person','person_number','num_rooms')->as('offer_details');
     }
 
     public function locations()

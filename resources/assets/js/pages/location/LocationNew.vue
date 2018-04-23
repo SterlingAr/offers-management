@@ -1,6 +1,5 @@
 <template>
     <div>
-
         <v-dialog
                 v-model="dialog"
                 fullscreen
@@ -22,10 +21,11 @@
                         <v-btn slot="activator" dark icon>
                             <v-icon>more_vert</v-icon>
                         </v-btn>
-
                     </v-menu>
                 </v-toolbar>
                 <v-card-text>
+
+
                     <v-alert type="error" :value="hasErrors" v-for="error in serverSideErrors">
                         {{error}}
                     </v-alert>
@@ -196,6 +196,7 @@
                 $_veeValidate: {
                   validator: 'new'
                 },
+
                 hasErros: false,
                 serverSideErrors: [],
 

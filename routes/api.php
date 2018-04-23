@@ -26,10 +26,11 @@ Route::group(['middleware' => 'auth:api'], function () {
 
 
     Route::get('/offers','OfferController@index');
+    Route::post('/offers/search','OfferController@indexTable');
     Route::get('/offers/{offer_id}', 'OfferController@show');
     Route::post('/offers/add', 'OfferController@store');
-    Route::post('/offers/update/{offer}', 'OfferController@update');
-
+    Route::post('/offers/update/{offer_id}', 'OfferController@update');
+    Route::delete('/offers/delete/{offer_id}', 'OfferController@destroy');
     Route::get('/offers-list','OfferController@getOffersList');
     Route::get('/available-rooms', 'OfferController@getAvailableRooms');
 
@@ -43,14 +44,13 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/locations/store', 'LocationController@store');
     Route::post('/locations/update/{location_id}', 'LocationController@update');
     Route::delete('/locations/delete/{location_id}', 'LocationController@destroy');
-
-
     Route::get('/rooms', 'RoomController@index');
 
 
 });
 
 Route::group(['middleware' => 'guest:api'], function () {
+
     Route::post('login', 'Auth\LoginController@login')->name('login');
     Route::post('register', 'Auth\RegisterController@register');
     Route::post('password/email', 'Auth\ForgotPasswordController@sendResetLinkEmail');
