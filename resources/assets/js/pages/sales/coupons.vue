@@ -92,7 +92,6 @@
                     edit:false,
                     code:"",
                     reedems:20,
-
                 },
                 validationRules: {
                     codeRules: [
@@ -131,6 +130,7 @@
                 };
                 this.addModal=true;
             },
+
             addModalInit(){
                 this.couponModel={
                     code:"",

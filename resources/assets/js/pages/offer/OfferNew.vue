@@ -31,8 +31,6 @@
 
                     <v-container grid-list-md text-xs-center>
                         <v-layout row wrap>
-
-
                             <v-flex xs12 md6 lg6 sm12>
                                 <form>
                                     <v-text-field
@@ -54,7 +52,6 @@
                                     ></v-text-field>
                                 </form>
                             </v-flex>
-
 
                             <v-flex xs12 md6 lg6 sm12>
                                 <p class="headline center">Adauga o data</p>
