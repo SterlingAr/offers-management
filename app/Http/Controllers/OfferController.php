@@ -149,39 +149,40 @@ class OfferController extends Controller
     public function store(Request $request)
     {
 
-        //future validation for date goes here
         $json = $request->json()->all();
         $newOffer = $json['newOffer'];
-
 
         $rules = [
             'title' => 'bail|required|max:255',
             'description' => 'required|max:5000',
-            'dates.*.start_date' => 'required|bail|date_format:"Y-m-d"',
-            'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
-            'dates.*.locations.*.id' => 'exists:locations,id',
-            'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
+//            'dates.*.start_date' => 'required|bail|date_format:"Y-m-d"',
+//            'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
+//            'dates.*.locations.*.id' => 'exists:locations,id',
+//            'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
         ];
 
-        $validator = Validator::make($newOffer, $rules);
+        $offerValidator = Validator::make($newOffer, $rules);
 
-        if($validator->passes())
+        if($offerValidator->passes())
         {
-
             $offer = Offer::create([
                 'title' => $newOffer['title'],
                 'description' => $newOffer['description']
             ]);
 
-            if(isset($newOffer['dates']))
+            if(isset($json['dates']))
             {
-                $this->addDates($offer, $newOffer['dates']);
+//                $this->addDates($offer, $json['dates']);
             }
 
-            return response()->json($newOffer);
+            return response()->json([
+                'status' => 'success'
+            ],200);
         }
 
-        return response()->json($validator->errors()->all(),400);
+
+
+        return response()->json($offerValidator->errors()->all(),400);
 
     }
 
