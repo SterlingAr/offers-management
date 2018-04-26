@@ -52,13 +52,15 @@
             </v-data-table>
         </v-card>
         <offer-edit :dialog.sync="dialogEdit"></offer-edit>
-        <offer-new :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new>
+        <offer-new2 :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new2>
+        <!--<offer-new :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new>-->
     </div>
 </template>
 
 
 <script>
     import OfferNew from './OfferNew.vue'
+    import OfferNew2 from './OfferNew2.vue'
     import OfferEdit from './OfferEdit.vue'
     import {mapActions,mapGetters} from 'vuex'
     import axios from 'axios'
@@ -142,7 +144,8 @@
 
         components: {
             'offer-edit' : OfferEdit,
-            'offer-new' : OfferNew
+            'offer-new' : OfferNew,
+            'offer-new2' : OfferNew2
         },
 
         directives: {debounce},
