@@ -16,11 +16,9 @@ class OfferDatesLocationRoomTable extends Migration
         Schema::create('offer_dates_location_room', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('offer_date_id')->unsigned();
-            $table->integer('location_id')->unsigned()->nullable();
             $table->integer('location_room_id')->unsigned();
             $table->integer('price_person')->unsigned()->nullable();
             $table->integer('person_number')->unsigned()->nullable();
-            $table->integer('num_rooms')->unsigned()->nullable();
 //            $table->timestamps();
         });
     }

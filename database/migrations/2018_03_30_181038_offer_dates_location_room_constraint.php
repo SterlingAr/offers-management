@@ -25,10 +25,7 @@ class OfferDatesLocationRoomConstraint extends Migration
                 ->on('location_room')
                 ->onDelete('cascade');
 
-            $table->foreign('location_id')
-                ->references('id')
-                ->on('locations')
-                ->onDelete('cascade');
+
         });
     }
 
