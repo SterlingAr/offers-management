@@ -146,43 +146,65 @@ class OfferController extends Controller
 
 
 
-    public function store(Request $request)
-    {
+    public function store(Request $request){
 
         $json = $request->json()->all();
+
         $newOffer = $json['newOffer'];
 
         $rules = [
             'title' => 'bail|required|max:255',
             'description' => 'required|max:5000',
-//            'dates.*.start_date' => 'required|bail|date_format:"Y-m-d"',
-//            'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
-//            'dates.*.locations.*.id' => 'exists:locations,id',
-//            'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
         ];
 
         $offerValidator = Validator::make($newOffer, $rules);
 
-        if($offerValidator->passes())
-        {
+        if($offerValidator->passes()){
+
             $offer = Offer::create([
                 'title' => $newOffer['title'],
                 'description' => $newOffer['description']
             ]);
 
-            if(isset($json['dates']))
-            {
-//                $this->addDates($offer, $json['dates']);
+            if($request->has('dates')){
+
+                $dates = $request->input('dates');
+                $dateRules = [
+                    'dates.*.start_date' => 'required|bail|date_format:"Y-m-d"',
+                    'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
+                    'dates.*.locations.*.id' => 'exists:locations,id',
+                    'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
+                    'dates.*.locations.*.rooms.*.individualRooms.*.price_person' => 'required|integer',
+                    'dates.*.locations.*.rooms.*.individualRooms.*.person_number' => 'required|integer',
+                ];
+
+
+
+                $datesValidator = Validator::make($dates, $dateRules);
+
+                if($datesValidator->passes()){
+
+                    $this->addDates($offer, $dates);
+
+                    return response()->json([
+                        'status' => 'offer stored'
+                    ],200);
+
+                } else {
+                    return response()->json([
+                        'status' => 'Dates contain errors',
+                        'errors' => $datesValidator->errors()->all()
+                    ],400);
+                }
+
             }
 
+        } else {
             return response()->json([
-                'status' => 'success'
-            ],200);
+                'errors' => $offerValidator->errors()->all(),
+                'status' => 'Validation failed',
+            ],400);
         }
-
-
-
-        return response()->json($offerValidator->errors()->all(),400);
 
     }
 
@@ -222,74 +244,55 @@ class OfferController extends Controller
     {
         foreach($dates as $date)
         {
+           $start = \Carbon\Carbon::createFromFormat('Y-m-d', $date['start_date']);
+           $end = \Carbon\Carbon::createFromFormat('Y-m-d', $date['end_date']);
 
-                $start = \Carbon\Carbon::createFromFormat('Y-m-d', $date['start_date']);
-                $end = \Carbon\Carbon::createFromFormat('Y-m-d', $date['end_date']);
+           $newDate =  OfferDate::create([
+                'start_date' => $start,
+               'end_date' => $end
+            ]);
 
-               $newDate =  OfferDate::create([
-                    'start_date' => $start,
-                   'end_date' => $end
-                ]);
+           if(isset($date['locations']))
+           {
+               $this->addLocations($newDate, $date['locations']);
+           }
 
-               if(isset($date['locations'])) {
-                   $this->addLocations($newDate, $date['locations']);
-               }
-
-               if(isset($date['offerDateLocationRooms'])){
-
-                   foreach($date['offerDateLocationRooms'] as $roomDetails) {
-
-                       $locationRoom = LocationRoom::where('location_id', $roomDetails['location_id'])->where('room_id', $roomDetails['room_id'])->first();
-
-                       $newDate->locationRooms()->attach($locationRoom, [
-                           'price_person' => $roomDetails['offer_details']['price_person'],
-                           'person_number' => $roomDetails['offer_details']['person_number']
-                       ]);
-                   }
-
-               }
-
-               $offer->dates()->save($newDate);
+           $offer->dates()->save($newDate);
         }
     }
 
 
 
 
-    //add locations to a date
-    private function addLocations(OfferDate $date, array $locations)
-    {
-        foreach($locations as $location)
-        {
+    private function addLocations(OfferDate $date, array $locations){
+
+        foreach($locations as $location){
+
             $loc  = Location::where('id', $location['id'])->first();
 
-//            if(isset($location['rooms']))
-//            {
-//                $this->addRooms($date, $location['rooms']);
-//            }
-
+            if(isset($location['rooms'])){
+                $this->addRooms($date,$loc,$location['rooms']);
+            }
             $date->locations()->attach($loc);
         }
 
     }
 
-    //add rooms to a location
-    private function addRooms(OfferDate $date, array $rooms)
-    {
-        foreach($rooms as $room)
-        {
-            $locationRoom = LocationRoom::where('location_id', $room['predefined_values']['location_id'])->where('room_id', $room['id'])->first();
+    private function addRooms(OfferDate $date, Location $location, array $rooms){
 
-            // create num_rooms->length() *  offer_dates_location_room
-            $num_rooms = $room['offer_details']['num_rooms'];
+        foreach($rooms as $room){
 
-            for($i = 0; $i<=$num_rooms; $i++)
-            {
-                $date->locationRooms()->attach($locationRoom, [
-                    'price_person' => $room['offer_details']['price_person'],
-                    'person_number' => $room['offer_details']['person_number'],
-                    'num_rooms' => $room['offer_details']['num_rooms'],
-                ]);
+            $locationRoom = LocationRoom::where('location_id', $location->id)
+                ->where('room_id', $room['id'])
+                ->first();
+
+            if(isset($room['individualRooms'])){
+                foreach($room['individualRooms'] as $individualRoom){
+                    $date->locationRooms()->attach($locationRoom, [
+                        'price_person' => $individualRoom['price_person'],
+                        'person_number' => $individualRoom['person_number']
+                    ]);
+                }
             }
         }
     }
