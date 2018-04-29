@@ -14,113 +14,6 @@ use Validator;
 class OfferController extends Controller
 {
 
-    protected $offerErrors;
-
-    public function modelViewOffers()
-    {
-//        $offers =  Offer::with('locations.dates.locationRooms')->get();
-        $offers = Offer::all();
-        return view('admin.offer.offers', ['offers' => $offers]);
-//        return response()->json($offers);
-    }
-
-
-
-    public function modelViewOffer($offerId)
-    {
-//        $offer = Offer::with('dates.locations.relatedRooms')->where('id',$offerId)->first();
-        $offer = Offer::with('dates.locations')->where('id',$offerId)->first();
-//        var_dump(response()->json($offer));
-//        return view('offer.offer', ['offer' => $offer]);
-        return response()->json($offer);
-
-
-//        return response()->json($offer);
-    }
-
-
-    public function show($offerId)
-    {
-
-        //add only the rooms that are in the offer_dates_location_room table.
-        $offer = Offer::with('dates.locations')->where('id',$offerId)->first();
-
-        //locations and rooms belonging to this offer
-        $selectedLocations = [];
-
-        foreach($offer->dates as $date)
-        {
-            foreach($date->locations as $location)
-            {
-
-                $rooms = [];
-                $selectedRooms = [];
-
-                $loc = Location::where('id',$location->id)->first();
-
-                $locationRooms = LocationRoom::where('location_id',$location->id)->get();
-
-                foreach($locationRooms as $locationRoom)
-                {
-                    //if there is a row that matches with current $locationRoom and date
-                    // first, get the room and field 'type', then attach predefined_values, then the current offer_values.
-                    $data = \DB::table('offer_dates_location_room')
-                        ->where('offer_date_id',$date->id)
-                        ->where('location_room_id', $locationRoom->id)
-
-                        ->select(['id','price_person','person_number','num_rooms'])
-                        ->get();
-
-
-                        if(isset($data))
-                    {
-
-                        foreach($data as $d){
-                            $room = Room::where('id', $locationRoom->room_id)->first();
-                            array_push($selectedRooms,$room);
-
-                            $room->predefined_values = \DB::table('location_room')
-                                ->where('location_id', $location->id)
-                                ->where('room_id', $room->id)
-                                ->select(['price_person','person_number','num_rooms'])->first();
-
-                            $room->offer_details = $d;
-
-                            array_push($rooms, $room);
-                        }
-
-
-
-
-                    } else { continue; }
-
-                }
-
-                $loc->rooms = $selectedRooms;
-                array_push($selectedLocations,$loc);
-
-
-                $location->rooms = $rooms;
-            }
-        }
-
-        $offer->selectedLocations = $selectedLocations;
-
-
-
-        return response()->json([
-            'offer' => $offer
-        ]);
-
-    }
-
-
-
-    public function index(Request $request)
-    {
-
-
-    }
 
     public function indexTable(Request $request) {
         $offers = Offer::select([
@@ -145,19 +38,99 @@ class OfferController extends Controller
     }
 
 
+//    public function show($offerId)
+//    {
+//
+//        //add only the rooms that are in the offer_dates_location_room table.
+//        $offer = Offer::with('dates.locations')->where('id',$offerId)->first();
+//
+//        //locations and rooms belonging to this offer
+//        $selectedLocations = [];
+//
+//        foreach($offer->dates as $date)
+//        {
+//            foreach($date->locations as $location)
+//            {
+//
+//                $rooms = [];
+//                $selectedRooms = [];
+//
+//                $loc = Location::where('id',$location->id)->first();
+//
+//                $locationRooms = LocationRoom::where('location_id',$location->id)->get();
+//
+//                foreach($locationRooms as $locationRoom)
+//                {
+//                    //if there is a row that matches with current $locationRoom and date
+//                    // first, get the room and field 'type', then attach predefined_values, then the current offer_values.
+//                    $data = \DB::table('offer_dates_location_room')
+//                        ->where('offer_date_id',$date->id)
+//                        ->where('location_room_id', $locationRoom->id)
+//
+//                        ->select(['id','price_person','person_number','num_rooms'])
+//                        ->get();
+//
+//
+//                        if(isset($data))
+//                    {
+//
+//                        foreach($data as $d){
+//                            $room = Room::where('id', $locationRoom->room_id)->first();
+//                            array_push($selectedRooms,$room);
+//
+//                            $room->predefined_values = \DB::table('location_room')
+//                                ->where('location_id', $location->id)
+//                                ->where('room_id', $room->id)
+//                                ->select(['price_person','person_number','num_rooms'])->first();
+//
+//                            $room->offer_details = $d;
+//
+//                            array_push($rooms, $room);
+//                        }
+//
+//
+//
+//
+//                    } else { continue; }
+//
+//                }
+//
+//                $loc->rooms = $selectedRooms;
+//                array_push($selectedLocations,$loc);
+//
+//
+//                $location->rooms = $rooms;
+//            }
+//        }
+//
+//        $offer->selectedLocations = $selectedLocations;
+//
+//
+//
+//        return response()->json([
+//            'offer' => $offer
+//        ]);
+//
+//    }
+
+
+    //retrieve dates belonging to the offer
+    public function dates($offerId){
+
+        $dates = OfferDate::with('locations')->where('offer_id', $offerId)->get();
+
+        return response()->json([
+            'dates' => $dates
+        ]);
+    }
+
 
     public function store(Request $request){
 
         $json = $request->json()->all();
-
         $newOffer = $json['newOffer'];
 
-        $rules = [
-            'title' => 'bail|required|max:255',
-            'description' => 'required|max:5000',
-        ];
-
-        $offerValidator = Validator::make($newOffer, $rules);
+        $offerValidator = $this->validatorOffer($newOffer);
 
         if($offerValidator->passes()){
 
@@ -169,18 +142,7 @@ class OfferController extends Controller
             if($request->has('dates')){
 
                 $dates = $request->input('dates');
-                $dateRules = [
-                    'dates.*.start_date' => 'required|bail|date_format:"Y-m-d"',
-                    'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
-                    'dates.*.locations.*.id' => 'exists:locations,id',
-                    'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
-                    'dates.*.locations.*.rooms.*.individualRooms.*.price_person' => 'required|integer',
-                    'dates.*.locations.*.rooms.*.individualRooms.*.person_number' => 'required|integer',
-                ];
-
-
-
-                $datesValidator = Validator::make($dates, $dateRules);
+                $datesValidator = $this->validatorDates($dates);
 
                 if($datesValidator->passes()){
 
@@ -196,73 +158,128 @@ class OfferController extends Controller
                         'errors' => $datesValidator->errors()->all()
                     ],400);
                 }
-
             }
-
         } else {
             return response()->json([
                 'errors' => $offerValidator->errors()->all(),
                 'status' => 'Validation failed',
             ],400);
         }
-
     }
 
 
 
+    public function update(Request $request){
 
-    public function update(Request $request, Offer $offer)
-    {
-        $offerJSON = $request->json()->all();
+        $json = $request->json()->all();
 
-        $offer->title = $offerJSON['title'];
+        $editedOffer = $json['editedOffer'];
 
-        if(isset($offerJSON['dates']))
-        {
-            $this->updateOfferDates($offerJSON['dates']);
+        $offerValidator = $this->validatorOffer($editedOffer);
+
+        if($offerValidator->passes()){
+
+            $offer =  Offer::where('id', $editedOffer['id'])->first();
+            $offer->title = $editedOffer['title'];
+            $offer->description = $editedOffer['description'];
+            $offer->save();
+
+
+
+//            if($request->has('removals')){
+//                try {
+//                    $this->applyRemovals($json['removals']);
+//                } catch( \Exception $e){
+//                    return response()->json([
+//                        'status' => 'An unexpected error has ocurred while removing items'
+//                    ]);
+//                }
+//            }
+//
+//
+//
+//            if($request->has('dates')){
+//
+//                $dates = $request->input('dates');
+//
+//                if($this->validatorDates($dates)->passes()){
+//                    try {
+//
+//                        $this->updateDates($dates);
+//
+//                    } catch(\Exception $e){
+//                        return response()->json([
+//                            'status' => 'An unexpected error has ocurred while updating'
+//                        ]);
+//                    }
+//                }
+//            }
+
+            return response()->json([
+                'status' => 'Offer updated successfully'
+            ],200);
+
+        } else {
+
+            return response()->json([
+                'status' => 'Validation failed',
+                'errors' => $offerValidator->errors()->all()
+            ],400);
         }
 
-    //validate the same as in store()
-    //also validate the removals object
-
-
     }
 
 
-    public function destroy($offerID)
-    {
+    public function destroy($offerID){
         $response = Offer::where('id', $offerID)->first()->delete();
 
         return $response ? response()->json(['status' => 'Offer deleted'],200) : response()->json(['status' => 'Offer could not be deleted'], 404);
     }
 
 
-    // Methods that should be in a service/helper class
+    public function getOffersList(){
 
+        $offers=Offer::all();
+
+        return response()->json(["offers"=>$offers]);
+
+     }
+
+     public function getAvailableRooms(Request $request){
+
+        $rooms= \DB::table('offer_dates_location_room')
+            ->where('offer_date_id',$request->offer_date_id)
+            ->where('location_room_id', $request->location_id)
+            ->join('location_room','offer_dates_location_room.location_room_id',"=","location_room.id")
+            ->join('rooms','location_room.room_id',"=","rooms.id")
+            ->select("offer_dates_location_room.price_person","offer_dates_location_room.person_number","offer_dates_location_room.available_rooms","rooms.type")
+            ->get();
+
+         return response()->json(["availableRooms"=>$rooms]);
+
+     }
+
+    // Methods that should be in a service/helper class
     //adds an array of dates to an offer
-    private function addDates(Offer $offer, array $dates)
-    {
+    private function addDates(Offer $offer, array $dates){
         foreach($dates as $date)
         {
-           $start = \Carbon\Carbon::createFromFormat('Y-m-d', $date['start_date']);
-           $end = \Carbon\Carbon::createFromFormat('Y-m-d', $date['end_date']);
+            $start = \Carbon\Carbon::createFromFormat('Y-m-d', $date['start_date']);
+            $end = \Carbon\Carbon::createFromFormat('Y-m-d', $date['end_date']);
 
-           $newDate =  OfferDate::create([
+            $newDate =  OfferDate::create([
                 'start_date' => $start,
-               'end_date' => $end
+                'end_date' => $end
             ]);
 
-           if(isset($date['locations']))
-           {
-               $this->addLocations($newDate, $date['locations']);
-           }
+            if(isset($date['locations']))
+            {
+                $this->addLocations($newDate, $date['locations']);
+            }
 
-           $offer->dates()->save($newDate);
+            $offer->dates()->save($newDate);
         }
     }
-
-
-
 
     private function addLocations(OfferDate $date, array $locations){
 
@@ -297,32 +314,40 @@ class OfferController extends Controller
         }
     }
 
+    private function validatorDates(array $dates){
 
-    public function getOffersList(){
+        $dateRules = [
+            'dates.*.start_date' => 'required|bail|date_format:"Y-m-d"',
+            'dates.*.end_date' => 'required|bail|date_format:"Y-m-d"',
+            'dates.*.locations.*.id' => 'exists:locations,id',
+            'dates.*.locations.*.rooms.*.id' => 'required|exists:rooms,id',
+            'dates.*.locations.*.rooms.*.individualRooms.*.price_person' => 'required|integer',
+            'dates.*.locations.*.rooms.*.individualRooms.*.person_number' => 'required|integer',
+        ];
 
-        $offers=Offer::all();
+        $validator = Validator::make($dates, $dateRules);
 
-        return response()->json(["offers"=>$offers]);
+        return $validator;
+    }
 
-     }
+    private function validatorOffer($offer){
+        $rules = [
+            'title' => 'bail|required|max:255',
+            'description' => 'required|max:5000',
+        ];
+        $validator = Validator::make($offer, $rules);
 
+        return $validator;
+    }
 
-     public function getAvailableRooms(Request $request){
+    private function updateDates(array $dates){
 
-        $rooms= \DB::table('offer_dates_location_room')
-            ->where('offer_date_id',$request->offer_date_id)
-            ->where('location_room_id', $request->location_id)
-            ->join('location_room','offer_dates_location_room.location_room_id',"=","location_room.id")
-            ->join('rooms','location_room.room_id',"=","rooms.id")
-            ->select("offer_dates_location_room.price_person","offer_dates_location_room.person_number","offer_dates_location_room.available_rooms","rooms.type")
-            ->get();
+    }
 
-         return response()->json(["availableRooms"=>$rooms]);
+    //remove the arrays of locations,dates,offer_dates_location_rooms
+    private function applyRemovals($removals){
 
-
-     }
-
-
+    }
 
 
 }

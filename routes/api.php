@@ -28,8 +28,9 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/offers','OfferController@index');
     Route::post('/offers/search','OfferController@indexTable');
     Route::get('/offers/{offer_id}', 'OfferController@show');
+    Route::get('/offers/{offer_id}/dates', 'OfferController@dates');
     Route::post('/offers/add', 'OfferController@store');
-    Route::post('/offers/update/{offer_id}', 'OfferController@update');
+    Route::post('/offers/update', 'OfferController@update');
     Route::delete('/offers/delete/{offer_id}', 'OfferController@destroy');
     Route::get('/offers-list','OfferController@getOffersList');
     Route::get('/available-rooms', 'OfferController@getAvailableRooms');

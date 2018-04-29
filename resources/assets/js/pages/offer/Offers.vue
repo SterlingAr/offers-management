@@ -51,105 +51,118 @@
                 </v-alert>
             </v-data-table>
         </v-card>
-        <offer-edit :dialog.sync="dialogEdit"></offer-edit>
-        <offer-new2 :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new2>
-        <!--<offer-new :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new>-->
+        <offer-edit :reindex.sync="reindex" :dialog.sync="dialogEdit" :offer-model="offerModel" :dates="dates"></offer-edit>
+        <offer-new :reindex.sync="reindex" :dialog.sync="dialogNew" :success-new.sync="newOfferSuccess"></offer-new>
     </div>
 </template>
 
 
 <script>
-    import OfferNew from './OfferNew.vue'
-    import OfferNew2 from './OfferNew2.vue'
-    import OfferEdit from './OfferEdit.vue'
-    import {mapActions,mapGetters} from 'vuex'
-    import axios from 'axios'
-    import debounce from '../../tools/debounce/debounce.js'
+import OfferNew from './OfferNew.vue'
+import OfferEdit from './OfferEdit.vue'
+import {mapActions} from 'vuex'
+import axios from 'axios'
+import debounce from '../../tools/debounce/debounce.js'
 
-    export default {
-        mounted() {
-            console.log('Component Offers mounted.')
-            this.indexTable();
-           this.getLocations();
-        },
+  export default {
 
-        data() {
-            return {
-              newOfferSuccess: false,
-              search: '',
-              delay: 5000,
-              headers: [
-                { text: 'ID', align: 'left', value: 'id'},
-                { text: 'Titlu oferta', value: 'title'},
-                { text: 'Descriere', value: 'description' },
-              ],
+    mounted(){
+       this.indexTable();
+       this.getLocations();
+    },
+    data() {
+        return {
+          newOfferSuccess: false,
+          search: '',
+          delay: 5000,
+          headers: [
+            { text: 'ID', align: 'left', value: 'id'},
+            { text: 'Titlu oferta', value: 'title'},
+            { text: 'Descriere', value: 'description' },
+          ],
 
-              offers: [
-
-              ],
-
-              dialogEdit: false,
-              dialogNew: false,
-
-
+          offers: [],
+          offerModel: {
+            id: 0,
+            title: '',
+            description: '',
+            options: {
+              valid: false
             }
-        },
-
-        methods: {
-
-
-          ...mapActions({
-            getLocations : 'getLocations'
-          }),
-
-
-          indexTable() { //query locations using the search parameters
-            axios.post('/api/offers/search', { query: this.search}).then((response) => {
-              console.log(response);
-              this.offers = response.data.offers;
-            }).catch((error) => {
-                console.log(error);
-            });
           },
+          dates: [],
+          dialogEdit: false,
+          dialogNew: false,
+          reindex: false, //used to fetch again all offers when one is updated or added.
 
-          newOffer() {
-            this.dialogNew = true;
-          },
+        }
+    },
 
-          editOffer(offer) {
-            this.dialogEdit = true;
-          },
+    methods: {
 
-          deleteOffer(offer) {
-            const index = this.offers.indexOf(offer)
-            confirm('Esti sigur ca doresti sa stergi oferta?') &&
+      indexTable(){ //query locations using the search parameters
+        axios.post('/api/offers/search', { query: this.search}).then((response) => {
+          this.offers = response.data.offers;
+        }).catch((error) => {
+            console.log(error);
+        });
+      },
 
-            axios.delete('/api/offers/delete/' + offer.id).then((response) => {
-              console.log(response);
-              this.offers.splice(index, 1);
+      newOffer() {
+        this.dialogNew = true;
+      },
 
-            }).catch((error) => {
-                console.log(error);
-            });
+      //prepare the offerModel object, fetch the dates belonging to the offer and pass them as props.
+      editOffer(offer) {
+        this.offerModel.id = offer.id;
+        this.offerModel.title = offer.title;
+        this.offerModel.description = offer.description;
+        // this.editedOffer = JSON.parse(JSON.stringify(offer));
+        // this.editedOffer.valid = false;
+        this.fetchDates(offer.id)
+        this.dialogEdit = true;
+      },
 
-          }
+      //get all dates belonging to this offer + locations.
+      async fetchDates(offerId){
+        this.busyDatesTable = true;
+        try {
+          const { data } = await axios.get('/api/offers/'+ offerId + '/dates')
+          console.log(data.dates);
+          this.dates = data.dates;
+        } catch(e) {
+          console.log(e);
+        }
+      },
 
-        },
+      deleteOffer(offer) {
+        const index = this.offers.indexOf(offer)
+        confirm('Esti sigur ca doresti sa stergi oferta?') &&
 
-        computed: {
-          // formTitle () {
-          //   return this.editedIndex === -1 ? 'New Offer' : 'Edit Offer'
-          // }
-        },
+        axios.delete('/api/offers/delete/' + offer.id).then((response) => {
+          this.offers.splice(index, 1);
 
-        components: {
-            'offer-edit' : OfferEdit,
-            'offer-new' : OfferNew,
-            'offer-new2' : OfferNew2
-        },
+        }).catch((error) => {
+            console.log(error);
+        });
+      },
 
-        directives: {debounce},
+      ...mapActions({
+        getLocations : 'getLocations'
+      }),
+    },
 
+    watch : {
 
-    }
+      reindex: function (val){
+        val && this.indexTable();
+      }
+    },
+
+    components: {
+        'offer-edit' : OfferEdit,
+        'offer-new' : OfferNew,
+    },
+    directives: {debounce},
+ }
 </script>
