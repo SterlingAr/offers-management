@@ -10,7 +10,7 @@
             <progress-bar :show="busy"></progress-bar>
             <v-card tile>
                 <v-toolbar card dark color="primary">
-                    <v-btn icon @click.native="$emit('update:dialog', false)" dark>
+                    <v-btn icon @click="closeUpdateOffer" dark>
                         <v-icon>close</v-icon>
                     </v-btn>
                     <v-toolbar-title>Editeaza oferta</v-toolbar-title>
@@ -371,6 +371,12 @@
               deletedIndex:0,
             }
           },
+          removalsModelDefault: {
+            dates : [],
+            locations: [],
+            rooms: [],
+            individualRooms: []
+          },
           validationRules: {
             titleRules: [
               v => !!v || 'Titlul ofertei este obligatoriu',
@@ -413,7 +419,7 @@
             {text:'ID', value:'id'},
             {text:'Nume', value:'name'},
           ],
-          removals: {
+          removalsModel: {
             dates : [],
             locations: [],
             rooms: [],
@@ -434,7 +440,8 @@
           try {
             const {data}  = await  axios.post('/api/offers/update', {
               editedOffer: this.offerModel,
-              // editedDates: this.dates,
+              dates: this.dates,
+              removals: this.removalsModel,
             });
             console.log(data);
             this.busy=false;
@@ -447,6 +454,7 @@
             console.log(data);
 
           } catch (e) {
+            console.log(e);
             for(let error of e.response.data.errors) {
               this.$store.dispatch('responseMessage', {
                 type: 'error',
@@ -491,6 +499,7 @@
           let date = {};
           date.id = this.falseId++;
           date.isNew = true;
+          date.offer_id = this.offerModel.id;
           date.start_date = this.dateModel.startDate;
           date.end_date = this.dateModel.endDate
           date.locations = [];
@@ -506,7 +515,13 @@
         },
         deleteDate(){
           let index = this.dateModel.options.deletedIndex;
-          this.removals.dates.push(this.dates[index]);
+          console.log(this.dates[index].isNew);
+          if(this.dates[index].isNew === undefined)
+          {
+            this.removalsModel.dates.push(this.dates[index].id);
+
+          }
+
           this.dates.splice(index,1);
           this.clearDateModelAndClose();
         },
@@ -561,7 +576,16 @@
           }
         },
 
+        /*
+          dates > locations > rooms > individualRooms
+          dates[id]
+          locations[date_id,location_id]
+          rooms[date_id,location_id,room_id]
+          individualRooms[date_id,location_id,room_id]
 
+
+
+         */
 
         //set date model to default values, reset form fields and close any add,edit or delete dialogs.
         clearDateModelAndClose(){
@@ -574,14 +598,18 @@
           this.locationModel = JSON.parse(JSON.stringify(this.locationModelDefault));
         },
 
+        clearRemovalsModel(){
+          this.removalsModel = JSON.parse(JSON.stringify(this.removalsModelDefault));
+        },
         clearAllData(){
           this.clearDateModelAndClose();
-          // this.clearLocationModelAndClose();
+          this.clearLocationModelAndClose();
           // this.clearRoomModelAndClose();
+          this.clearRemovalsModel();
         },
         //deactivate any active tables except the default one, which is for listing dates
         closeTableViews(){
-          // this.editingLocations = false;
+          this.editingLocations = false;
           // this.editingRooms = false;
           // this.editingIndividualRooms = false;
         },

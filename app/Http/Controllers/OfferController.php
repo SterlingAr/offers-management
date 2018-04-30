@@ -117,11 +117,41 @@ class OfferController extends Controller
     //retrieve dates belonging to the offer
     public function dates($offerId){
 
-        $dates = OfferDate::with('locations')->where('offer_id', $offerId)->get();
+
+        $dates = OfferDate::with(['locations'] )->where('offer_id', $offerId)->get();
+
+        //  For each location, get all rooms, if any of the rooms is used in the date,
+        //  add it to the rooms array belonging to that location + all individualRooms (offer_dates_location_room)
+        foreach($dates as $date){
+
+            foreach($date->locations as $location){
+
+                $rooms = $location->rooms()->get();
+
+                $roomsUsedInLocation = [];
+                foreach($rooms as $room){
+
+                    $locRoom = LocationRoom::where('location_id',$location->id)->where('room_id',$room->id)->first();
+                    $individualRooms = \DB::table('offer_dates_location_room')
+                        ->where('location_room_id', $locRoom->id)
+                        ->where('offer_date_id', $date->id)
+                        ->get();
+
+                    if($individualRooms){
+                        $room->individualRooms = $individualRooms;
+                        $roomsUsedInLocation = [$room];
+                    }
+                }
+
+                $location->rooms = $roomsUsedInLocation;
+            }
+        }
+
 
         return response()->json([
             'dates' => $dates
         ]);
+
     }
 
 
@@ -185,35 +215,39 @@ class OfferController extends Controller
             $offer->save();
 
 
+            //needed validation, check if any of the dates,locations,rooms,individualRooms exist
+            //note: nest the try catch in a bigger one.
+            if($request->has('removals')){
+                try {
+                    $this->applyRemovals($json['removals']);
+                } catch( \Exception $e){
+                    return response()->json([
+                        'status' => 'An unexpected error has ocurred while removing items'
+                    ]);
+                }
+            }
 
-//            if($request->has('removals')){
-//                try {
-//                    $this->applyRemovals($json['removals']);
-//                } catch( \Exception $e){
-//                    return response()->json([
-//                        'status' => 'An unexpected error has ocurred while removing items'
-//                    ]);
-//                }
-//            }
-//
-//
-//
-//            if($request->has('dates')){
-//
-//                $dates = $request->input('dates');
-//
-//                if($this->validatorDates($dates)->passes()){
+            if($request->has('dates')){
+
+                $dates = $request->input('dates');
+                $datesValidator = $this->validatorDates($dates);
+                if($datesValidator->passes()){
 //                    try {
-//
-//                        $this->updateDates($dates);
-//
+
+                        $this->updateDates($dates);
+
 //                    } catch(\Exception $e){
 //                        return response()->json([
-//                            'status' => 'An unexpected error has ocurred while updating'
-//                        ]);
+//                            'status' => 'An unexpected error has ocurred while updating, please try again'
+//                        ],400);
 //                    }
-//                }
-//            }
+                } else {
+                    return response()->json([
+                        'status' => 'Dates contain errors',
+                        'errors' => $datesValidator->errors()->all()
+                    ],400);
+                }
+            }
 
             return response()->json([
                 'status' => 'Offer updated successfully'
@@ -252,7 +286,7 @@ class OfferController extends Controller
             ->where('location_room_id', $request->location_id)
             ->join('location_room','offer_dates_location_room.location_room_id',"=","location_room.id")
             ->join('rooms','location_room.room_id',"=","rooms.id")
-            ->select("offer_dates_location_room.price_person","offer_dates_location_room.person_number","offer_dates_location_room.available_rooms","rooms.type")
+            ->select("offer_dates_location_room.price_person","offer_dates_location_room.person_number","offer_dates_location_room.available_rooms","rooms.type") //am sters coloana available_rooms, e necesara?
             ->get();
 
          return response()->json(["availableRooms"=>$rooms]);
@@ -340,13 +374,49 @@ class OfferController extends Controller
         return $validator;
     }
 
+    //if date is new, add the to an array
+    //if date is not new, update it
+    //at the end, use addDates() to add the new dates.
     private function updateDates(array $dates){
 
-    }
+        $newDates = [];
+        foreach($dates as $editedDate){
 
+            if(isset($editedDate['isNew']) && $editedDate['isNew']){
+
+                $newDates = [$editedDate];
+
+            }
+
+            $date = OfferDate::where('id',$editedDate['id'])->first();
+            $date->start_date = $editedDate['start_date'];
+            $date->end_date = $editedDate['end_date'];
+            $date->save();
+        }
+
+        //add new dates, the offer is the same for all of them
+        if($newDates)
+        {
+            $offer = Offer::where('id', $newDates[0]['offer_id'])->first();
+            $this->addDates($offer,$newDates);
+        }
+
+    }
     //remove the arrays of locations,dates,offer_dates_location_rooms
+
     private function applyRemovals($removals){
 
+        if(isset($removals['dates'])){
+
+            foreach($removals['dates'] as $dateId){
+//                if(!isset($editedDate['isNew'])){
+                    OfferDate::where('id', $dateId)
+                        ->first()
+                        ->delete();
+//                }
+
+            }
+        }
     }
 
 

@@ -101,11 +101,13 @@ import debounce from '../../tools/debounce/debounce.js'
     methods: {
 
       indexTable(){ //query locations using the search parameters
+        this.offers = [];
         axios.post('/api/offers/search', { query: this.search}).then((response) => {
           this.offers = response.data.offers;
         }).catch((error) => {
             console.log(error);
         });
+        this.reindex = false;
       },
 
       newOffer() {
