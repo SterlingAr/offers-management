@@ -37,13 +37,21 @@ class OfferDate extends Model
 
 
 
-    //European date format
+//    //European date format
+//    public function getStartDateAttribute($value) {
+//        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+//    }
+//
+//    public function getEndDateAttribute($value) {
+//        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+//    }
+
     public function getStartDateAttribute($value) {
-        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+        return \Carbon\Carbon::parse($value)->format('Y-m-d');
     }
 
     public function getEndDateAttribute($value) {
-        return \Carbon\Carbon::parse($value)->format('d-m-Y');
+        return \Carbon\Carbon::parse($value)->format('Y-m-d');
     }
 
 

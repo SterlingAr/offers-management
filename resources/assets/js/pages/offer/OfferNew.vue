@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="container">
         <v-dialog
                 v-model="dialog"
                 fullscreen
@@ -7,15 +7,16 @@
                 transition="dialog-bottom-transition"
                 scrollable
         >
+            <progress-bar :show="busy"></progress-bar>
             <v-card tile>
                 <v-toolbar card dark color="primary">
-                    <v-btn icon @click.native="$emit('update:dialog', false)" dark>
+                    <v-btn icon @click.native="closeCreateOffer" dark>
                         <v-icon>close</v-icon>
                     </v-btn>
-                    <v-toolbar-title>Adauga o oferta noua</v-toolbar-title>
+                    <v-toolbar-title>Noua oferta</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click.native="createOffer">Salveaza</v-btn>
+                        <v-btn dark flat @click.native="createOffer">Creaza</v-btn>
                     </v-toolbar-items>
                     <v-menu bottom right offset-y>
                         <v-btn slot="activator" dark icon>
@@ -24,275 +25,445 @@
                     </v-menu>
                 </v-toolbar>
                 <v-card-text>
-
-                    <v-alert type="error" :value="hasErrors" v-for="error in serverSideErrors">
-                        {{error}}
-                    </v-alert>
-
                     <v-container grid-list-md text-xs-center>
                         <v-layout row wrap>
-                            <v-flex xs12 md6 lg6 sm12>
-                                <form>
-                                    <v-text-field
-                                            label="Titlu oferta"
-                                            v-model="newOffer.title"
-                                            :error-messages="errors.collect('title')"
-                                            v-validate="'required|max:255'"
-                                            data-vv-name="offerTitle"
-                                            required
-                                    ></v-text-field>
-                                    <v-text-field
-                                            v-model="newOffer.description"
-                                            label="Descriere oferta"
-                                            :textarea=true
-                                            :error-messages="errors.collect('description')"
-                                            v-validate="'required|max:1500'"
-                                            data-vv-name="description"
-                                            required
-                                    ></v-text-field>
-                                </form>
-                            </v-flex>
-
-                            <v-flex xs12 md6 lg6 sm12>
-                                <p class="headline center">Adauga o data</p>
-                                    <v-dialog
-                                            ref="dialog1"
-                                            persistent
-                                            v-model="modal1"
-                                            lazy
-                                            full-width
-                                            width="290px"
-                                            :return-value.sync="startDate"
-                                    >
-                                        <v-text-field
-                                                slot="activator"
-                                                label="Data inceput"
-                                                v-model="startDate"
-                                                prepend-icon="event"
-                                                lazy
-                                                :error-messages="errors.collect('startDate')"
-                                                v-validate="'required'"
-                                                data-vv-name="startDate"
-                                                readonly
-                                        ></v-text-field>
-                                        <v-date-picker v-model="startDate" scrollable locale="ro">
-                                            <v-spacer></v-spacer>
-                                            <v-btn flat color="primary" @click="modal1 = false">Cancel</v-btn>
-                                            <v-btn flat color="primary" @click="$refs.dialog1.save(startDate)">OK</v-btn>
-                                        </v-date-picker>
-                                    </v-dialog>
-                                    <v-dialog
-                                            ref="dialog2"
-                                            persistent
-                                            v-model="modal2"
-                                            lazy
-                                            full-width
-                                            width="290px"
-                                            :return-value.sync="endDate"
-                                    >
-                                        <v-text-field
-                                                slot="activator"
-                                                label="Data sfarsit"
-                                                v-model="endDate"
-                                                prepend-icon="event"
-                                                lazy
-                                                :error-messages="errors.collect('endDate')"
-                                                v-validate="'required'"
-                                                data-vv-name="endDate"
-                                                readonly
-
-                                        ></v-text-field>
-                                        <v-date-picker v-model="endDate" scrollable locale="ro">
-                                            <v-spacer></v-spacer>
-                                            <v-btn flat color="primary" @click="modal2 = false">Cancel</v-btn>
-                                            <v-btn flat color="primary" @click="$refs.dialog2.save(endDate)">OK</v-btn>
-                                        </v-date-picker>
-                                    </v-dialog>
-                                    <v-btn
-                                            dark
-                                            color="blue"
-                                            class="right"
-                                            @click="addDate"
-                                    >
-                                        <v-icon>add</v-icon>
-                                    </v-btn>
-                            </v-flex>
-
-                            <v-flex  xs12 sm12 md12 lg12 v-if="newOffer.dates.length>0">
-                                <p class="headline">Adauga o locatie </p>
-                                <v-select
-                                        label="Select"
-                                        :items="locations"
-                                        v-model="selectedLocationID"
-                                        item-text="name"
-                                        item-value="id"
-                                ></v-select>
-                                <v-btn
-                                        dark
-                                        color="blue"
-                                        class="right"
-                                        @click="addLocation()"
-
-                                >
-                                    <v-icon>add</v-icon>
-                                </v-btn>
-                            </v-flex>
-
-
-
-                            <v-flex xs12 sm12 md12 lg12>
-                                <v-tabs
-                                        dark
-                                        color="blue"
-                                        show-arrows
-                                        v-if="newOffer.dates.length > 0"
-                                >
-                                    <v-tabs-slider color="yellow"></v-tabs-slider>
-                                    <v-tab
-                                            v-for="date in newOffer.dates"
-                                            :key="date.id"
-                                            :href="'#tab-' + date.id"
-                                    >
-                                        {{ date.start_date }} - {{ date.end_date }}
-                                    </v-tab>
-                                    <v-tabs-items>
-                                        <v-tab-item
-                                                v-for="date in newOffer.dates"
-                                                :key="date.id"
-                                                :id="'tab-' + date.id"
+                            <v-flex md6 xs12 >
+                                <v-card light>
+                                    <v-toolbar color="indigo" dark>
+                                        <v-icon>perm_identity</v-icon>
+                                        <v-toolbar-title> Detalii oferta</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                    </v-toolbar>
+                                    <v-card-text>
+                                        <v-form
+                                                v-model="offerModel.options.valid"
+                                                lazy-validation
+                                                ref="offerFields"
                                         >
-                                            <v-expansion-panel v-if="date.locations.length > 0">
-                                                <v-expansion-panel-content v-for="location in date.locations" >
-                                                    <div slot="header">{{location.name}}</div>
-                                                    <v-card>
-                                                        <v-card-text >
-                                                            <v-data-table
-                                                                    :headers="roomHeaders"
-                                                                    :items="location.rooms"
-                                                                    hide-actions
-                                                                    class="elevation-1"
-                                                            >
-                                                                <template slot="items" slot-scope="props">
-                                                                    <td>{{ props.item.type}}</td>
-                                                                    <td class="text-xs-left">{{ props.item.predefined_values.num_rooms }}</td>
-                                                                    <td class="justify-center layout px-0">
-                                                                        <v-btn icon class="mx-0" @click="editRoom(props.item,date,location)">
-                                                                            <v-icon color="teal">edit</v-icon>
-                                                                        </v-btn>
-                                                                        <v-btn icon class="mx-0" @click="deleteRoom(date,location, props.item)">
-                                                                            <v-icon color="pink">delete</v-icon>
-                                                                        </v-btn>
-                                                                    </td>
-                                                                </template>
-                                                            </v-data-table>
-                                                            <v-card-text v-if="addingRoom">
-                                                                <v-select
-                                                                        label="Selecteaza"
-                                                                        :items="originalRooms"
-                                                                        item-text="type"
-                                                                        item-value="id"
-                                                                        v-model="selectedOriginalRoomID"
-                                                                ></v-select>
-                                                            </v-card-text>
-                                                            <v-btn
-                                                                    v-show="!addingRoom"
-                                                                    @click="fetchRooms(location.id)"
-                                                                    class="right"
-                                                                    color="blue"
-                                                            >
-                                                                Adauga camera
-                                                            </v-btn>
-
-                                                            <v-btn
-                                                                    v-show="addingRoom"
-                                                                    @click="addRoom(date,location) "
-                                                                    class="right"
-                                                                    color="blue"
-                                                            >
-                                                                Ok
-                                                            </v-btn>
-                                                        </v-card-text>
-                                                    </v-card>
-                                                </v-expansion-panel-content>
-                                            </v-expansion-panel>
-                                        </v-tab-item>
-                                    </v-tabs-items>
-                                </v-tabs>
+                                            <v-text-field
+                                                    label="Titlu oferta"
+                                                    v-model="offerModel.title"
+                                                    :rules="validationRules.titleRules"
+                                                    required
+                                            ></v-text-field>
+                                            <v-text-field
+                                                    v-model="offerModel.description"
+                                                    label="Descriere oferta"
+                                                    :rules="validationRules.descriptionRules"
+                                                    :textarea=true
+                                                    required
+                                            ></v-text-field>
+                                        </v-form>
+                                    </v-card-text>
+                                </v-card>
+                            </v-flex>
+                            <!-- Dates -->
+                            <v-flex md6 xs12 v-if="!this.editingLocations">
+                                <v-card light>
+                                    <v-toolbar color="indigo" dark>
+                                        <v-icon>event</v-icon>
+                                        <v-toolbar-title> Listare date</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                        <v-btn icon dark right @click="addDateDialog">
+                                            <v-icon>add</v-icon>
+                                        </v-btn>
+                                    </v-toolbar>
+                                    <v-card-text>
+                                        <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
+                                        <v-data-table
+                                                :headers="datesTableHeaders"
+                                                :items="dates"
+                                                class="elevation-1"
+                                        >
+                                            <template slot="items" slot-scope="props">
+                                                <td class="text-xs-left">{{ props.item.id }}</td>
+                                                <td class="text-xs-left">{{friendlyDateFormat(props.item.start_date)}}</td>
+                                                <td class="text-xs-left">{{friendlyDateFormat(props.item.end_date)}}</td>
+                                                <td class="text-xs-right">
+                                                    <v-btn color="indigo" dark @click="editLocations(props.item)">
+                                                        <v-badge color="blue" rigth>
+                                                            Locatii
+                                                            <span class="right" slot="badge" v-if="props.item.locations.length !== undefined && props.item.locations.length >= 0">
+                                                                {{props.item.locations.length}}
+                                                            </span>
+                                                            <span class="right" slot="badge" v-else>0</span>
+                                                        </v-badge>
+                                                    </v-btn>
+                                                    <v-btn icon class="mx-0" @click="editDateDialog(props.item)">
+                                                        <v-icon color="teal">edit</v-icon>
+                                                    </v-btn>
+                                                    <v-btn icon class="mx-0" @click="deleteDateDialog(props.item)">
+                                                        <v-icon color="pink">delete</v-icon>
+                                                    </v-btn>
+                                                </td>
+                                            </template>
+                                        </v-data-table>
+                                    </v-card-text>
+                                </v-card>
+                            </v-flex>
+                            <!-- Locations -->
+                            <v-flex md6 xs12 v-if="!editingRooms && editingLocations">
+                                <v-card light>
+                                    <v-toolbar color="indigo" dark>
+                                        <v-icon>event</v-icon>
+                                        <v-toolbar-title> Listare locati pentru data {{ dateConcat(this.currentDate) }}</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                        <v-btn icon dark right @click="editingLocations = false">
+                                            <v-icon>keyboard_backspace</v-icon>
+                                        </v-btn>
+                                        <v-btn icon dark right @click="addLocationDialog">
+                                            <v-icon>add</v-icon>
+                                        </v-btn>
+                                    </v-toolbar>
+                                    <v-card-text>
+                                        <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
+                                        <v-data-table
+                                                :headers="locationsTableHeaders"
+                                                :items="currentDate.locations"
+                                                class="elevation-1"
+                                        >
+                                            <template slot="items" slot-scope="props">
+                                                <td class="text-xs-left">{{ props.item.id }}</td>
+                                                <td class="text-xs-left">{{ props.item.name }}</td>
+                                                <td class="text-xs-right">
+                                                    <v-btn color="indigo" dark @click="editRooms(props.item)">
+                                                        <v-badge color="blue" rigth>
+                                                            Camere
+                                                            <span class="right" slot="badge" v-if="props.item.rooms.length !== undefined && props.item.rooms.length >= 0">
+                                                                {{props.item.rooms.length}}
+                                                            </span>
+                                                            <span class="right" slot="badge" v-else>0</span>
+                                                        </v-badge>
+                                                    </v-btn>
+                                                    <v-btn icon class="mx-0" @click="deleteLocationDialog(props.item)">
+                                                        <v-icon color="pink">delete</v-icon>
+                                                    </v-btn>
+                                                </td>
+                                            </template>
+                                        </v-data-table>
+                                    </v-card-text>
+                                </v-card>
+                            </v-flex>
+                            <!-- Rooms -->
+                            <v-flex md6 xs12 v-if="!editingIndividualRooms && editingRooms">
+                                <v-card light>
+                                    <v-toolbar color="indigo" dark>
+                                        <v-icon>event</v-icon>
+                                        <v-toolbar-title> Listare camere pentru locatia {{currentLocation.name}}</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                        <v-btn icon dark right @click="editingRooms = false">
+                                            <v-icon>keyboard_backspace</v-icon>
+                                        </v-btn>
+                                        <v-btn icon dark right @click="addRoomDialog">
+                                            <v-icon>add</v-icon>
+                                        </v-btn>
+                                    </v-toolbar>
+                                    <v-card-text>
+                                        <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
+                                        <v-data-table
+                                                :headers="roomsTableHeaders"
+                                                :items="currentLocation.rooms"
+                                                class="elevation-1"
+                                        >
+                                            <template slot="items" slot-scope="props">
+                                                <td class="text-xs-left">{{ props.item.id }}</td>
+                                                <td class="text-xs-left">{{ props.item.type }}</td>
+                                                <td class="text-xs-right">
+                                                    <v-btn color="indigo" dark @click="editIndividualRooms(props.item)">
+                                                        <v-badge color="blue" rigth>
+                                                            Camere individuale
+                                                            <span class="right" slot="badge" v-if="props.item.individualRooms !== undefined && props.item.individualRooms.length >= 0">
+                                                                {{ props.item.individualRooms.length}}
+                                                            </span>
+                                                            <span class="right" slot="badge" v-else>0</span>
+                                                        </v-badge>
+                                                    </v-btn>
+                                                    <v-btn icon class="mx-0" @click="deleteRoomDialog(props.item)">
+                                                        <v-icon color="pink">delete</v-icon>
+                                                    </v-btn>
+                                                </td>
+                                            </template>
+                                        </v-data-table>
+                                    </v-card-text>
+                                </v-card>
+                            </v-flex>
+                            <!-- Individual rooms -->
+                            <v-flex md6 xs12 v-if="editingIndividualRooms">
+                                <v-card light>
+                                    <v-toolbar color="indigo" dark>
+                                        <v-icon>event</v-icon>
+                                        <v-toolbar-title> Camere individuale de tip {{currentRoom.type}} pentru locatia {{currentLocation.name}}</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                        <v-btn icon dark right @click="editingIndividualRooms = false">
+                                            <v-icon>keyboard_backspace</v-icon>
+                                        </v-btn>
+                                        <v-btn icon dark right @click="addIndividualRoomDialog">
+                                            <v-icon>add</v-icon>
+                                        </v-btn>
+                                    </v-toolbar>
+                                    <v-spacer></v-spacer>
+                                    <!--<span class="left">Numarul de camere predefinit in locatia {{currentLocation.name}} pentru tipul {{currentRoom.type}}:  {{ currentRoom.predefined_values.num_rooms }}</span>-->
+                                    <v-card-text>
+                                        <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
+                                        <v-data-table
+                                                :headers="individualRoomHeaders"
+                                                :items="currentRoom.individualRooms"
+                                                class="elevation-1"
+                                        >
+                                            <template slot="items" slot-scope="props">
+                                                <td class="text-xs-left">{{ props.item.id }}</td>
+                                                <td class="text-xs-left">{{ props.item.price_person }}</td>
+                                                <td class="text-xs-left">{{ props.item.person_number }}</td>
+                                                <td class="text-xs-right">
+                                                    <v-btn icon class="mx-0" @click="editIndividualRoomDialog(props.item)">
+                                                        <v-icon color="teal">edit</v-icon>
+                                                    </v-btn>
+                                                    <v-btn icon class="mx-0" @click="deleteIndividualRoomDialog(props.item)">
+                                                        <v-icon color="pink">delete</v-icon>
+                                                    </v-btn>
+                                                </td>
+                                            </template>
+                                        </v-data-table>
+                                    </v-card-text>
+                                </v-card>
                             </v-flex>
                         </v-layout>
                     </v-container>
-        <v-dialog v-model="editRoomDialog" v-if="editRooms.length > 0">
-                <v-card>
-                    <v-toolbar card dark color="primary">
-                        <v-btn icon @click="editRoomDialog = false">
-                            <v-icon>close</v-icon>
-                        </v-btn>
-                        <v-toolbar-title>
-                            Editare tip camera
-                            <b>{{ currentEditedRoom.type }}</b> , click on the cell to edit.
-                        </v-toolbar-title>
-                        <v-toolbar-items>
-                            <v-btn dark right flat @click.native="createOffer">Salveaza</v-btn>
-                        </v-toolbar-items>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
+        <!-- Dialog for adding a date -->
+        <v-dialog max-width="500px"
+                  v-model="dateModel.options.add || dateModel.options.edit"
+                  persistent
 
-                    </v-toolbar>
-
-                    <v-data-table
-                            :headers="dateLocationRoomsHeaders"
-                            :items="editRooms"
-                            hide-actions
-                            class="elevation-1"
+        >
+            <v-card>
+                <v-card-title>
+                    <span v-if="dateModel.options.add">Adauga o data noua</span>
+                    <span v-else>Actualizeaza data</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-form  v-model="dateModel.options.valid"
+                             ref="dateFields"
                     >
-                        <template slot="items" slot-scope="props">
-                            <td class="text-xs-left">{{props.item.id}}</td>
-                            <td class="text-xs-left">
-                                <v-edit-dialog
-                                        :return-value.sync="props.item.offer_details.price_person"
-                                        large
-                                        lazy
-                                        persistent
+                        <v-flex xs12>
+                            <v-menu
+                                    ref="startDateMenu"
+                                    lazy
+                                    :close-on-content-click="false"
+                                    v-model="startDateMenu"
+                                    transition="scale-transition"
+                                    offset-y
+                                    full-width
+                                    :nudge-right="40"
+                                    min-width="290px"
+                                    :return-value.sync="dateModel.startDate"
+                            >
+                                <v-text-field
+                                        slot="activator"
+                                        label="Data inceput"
+                                        v-model="dateModel.startDate"
+                                        prepend-icon="event"
+                                        :rules="validationRules.startDateRules"
+                                        readonly
+                                        required
+                                ></v-text-field>
+                                <v-date-picker
+                                        v-model="dateModel.startDate"
+                                        @input="$refs.startDateMenu.save(dateModel.startDate)"
                                 >
-                                    <div>{{ props.item.offer_details.price_person }}</div>
-                                    <div slot="input" class="mt-3 title">Actualizeaza pret pe persoana</div>
-                                    <v-text-field
-                                            slot="input"
-                                            label="Editeaza"
-                                            v-model="props.item.offer_details.price_person"
-                                            single-line
-                                            autofocus
-                                    ></v-text-field>
-                                </v-edit-dialog>
-                            </td>
-                            <td>
-                                <v-edit-dialog
-                                        :return-value.sync="props.item.offer_details.person_number"
-                                        large
+                                </v-date-picker>
+                            </v-menu>
+                        </v-flex>
+                        <v-flex xs12>
+                                <v-menu
+                                        ref="endDateMenu"
                                         lazy
-                                        persistent
+                                        :close-on-content-click="false"
+                                        v-model="endDateMenu"
+                                        transition="scale-transition"
+                                        offset-y
+                                        full-width
+                                        :nudge-right="40"
+                                        min-width="290px"
+                                        :return-value.sync="dateModel.endDate"
                                 >
-                                    <div>{{ props.item.offer_details.person_number }}</div>
-                                    <div slot="input" class="mt-3 title">Update numar persoane</div>
                                     <v-text-field
-                                            slot="input"
-                                            label="Editeaza"
-                                            v-model="props.item.offer_details.person_number"
-                                            single-line
-                                            autofocus
+                                            slot="activator"
+                                            label="Data sfarsit"
+                                            v-model="dateModel.endDate"
+                                            prepend-icon="event"
+                                            :rules="validationRules.endDateRules"
+                                            readonly
+                                            required
                                     ></v-text-field>
-                                </v-edit-dialog>
-                            </td>
-                            <td class="justify-center layout px-0">
-                                <v-btn icon class="mx-0" >
-                                    <v-icon color="pink">delete</v-icon>
-                                </v-btn>
-                            </td>
-                        </template>
-                        <template slot="no-data">
-                        </template>
-                    </v-data-table>
-                </v-card>
-            </v-dialog>
-        </v-card-text>
+                                    <v-date-picker v-model="dateModel.endDate" @input="$refs.endDateMenu.save(dateModel.endDate)"></v-date-picker>
+                                </v-menu>
+                        </v-flex>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="clearDateModelAndClose">Close</v-btn>
+                    <v-btn  :disabled="!dateModel.options.valid" color="blue darken-1" flat @click.native="addDate" v-if="dateModel.options.add">Salveaza</v-btn>
+                    <v-btn  :disabled="!dateModel.options.valid" color="blue darken-1" flat @click.native="updateDate" v-else>Actualizeaza</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <!-- Dialog for adding location to currentDate -->
+        <v-dialog
+                max-width="500px"
+                v-model="locationModel.options.add"
+                persistent
+        >
+            <v-card>
+                <v-card-title>
+                    <span class="headline">Adauga o locatie pentru data {{dateConcat(currentDate)}}</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-form  v-model="locationModel.options.valid"
+                             ref="locationFields"
+                             lazy-validation
+                    >
+                        <v-flex xs12>
+                            <v-select
+                                    label="Select"
+                                    :items="locations"
+                                    v-model="selectedLocationID"
+                                    :rules="validationRules.locationRules"
+                                    item-text="name"
+                                    item-value="id"
+                            ></v-select>
+                        </v-flex>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="clearLocationModelAndClose">Close</v-btn>
+                    <v-btn  :disabled="!locationModel.options.valid" color="blue darken-1" flat @click.native="addLocation">Salveaza</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <!-- Dialog for adding room to currentLocation -->
+        <v-dialog
+                max-width="500px"
+                v-model="roomModel.options.add"
+                persistent
+        >
+            <v-card>
+                <v-card-title>
+                    <span class="headline">Adauga un tip de camera pentru locatia  {{ currentLocation.name }}</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-form  v-model="roomModel.options.valid"
+                             ref="roomFields"
+                    >
+                        <v-flex xs12>
+                            <v-select
+                                    label="Select"
+                                    :items="fetchUnmodifiedLocation.rooms"
+                                    v-model="selectedRoomTypeID"
+                                    :rules="validationRules.roomRules"
+                                    item-text="type"
+                                    item-value="id"
+                            ></v-select>
+                        </v-flex>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="clearRoomModelAndClose">Close</v-btn>
+                    <v-btn  :disabled="!roomModel.options.valid" color="blue darken-1" flat @click.native="addRoom">Salveaza</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <!-- Dialog for adding individual room to currentRoom -->
+        <v-dialog
+                max-width="500px"
+                v-model="individualRoomModel.options.add || individualRoomModel.options.edit"
+                persistent
+        >
+            <v-card>
+                <v-card-title>
+                    <span class="headline">Adauga o camera individuala de tipul {{currentRoom.type}} pentru locatia {{currentLocation.name}}</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-form
+                            v-model="individualRoomModel.options.valid"
+                            ref="individualRoomFields"
+                            lazy-validation
+                    >
+                        <v-flex xs12>
+                            <v-text-field
+                                    label="Price person"
+                                    v-model.number="individualRoomModel.price_person"
+                                    :rules="validationRules.pricePerson"
+                                    required
+                            ></v-text-field>
+                        </v-flex>
+                        <v-flex xs12>
+                            <v-text-field
+                                    label="Person number"
+                                    v-model.number="individualRoomModel.person_number"
+                                    :rules="validationRules.personNumber"
+                                    required
+                            ></v-text-field>
+                        </v-flex>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="clearIndividualRoomModelAndClose">Close</v-btn>
+                    <v-btn  :disabled="!individualRoomModel.options.valid" color="blue darken-1" flat @click.native="updateIndividualRoom" v-if="individualRoomModel.options.edit">Salveaza</v-btn>
+                    <v-btn  :disabled="!individualRoomModel.options.valid" color="blue darken-1" flat @click.native="addIndividualRoom" v-else>Salveaza</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
+        <!-- CONFIRMATION DIALOGS -->
+        <!-- Confirm delete date dialog -->
+        <v-dialog v-model="dateModel.options.delete" max-width="290">
+            <v-card>
+                <v-card-title class="headline">Stergere data?</v-card-title>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat="flat" @click="clearDateModelAndClose">Inchide</v-btn>
+                    <v-btn flat large color="error" @click="deleteDate">Da, sterge</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <!-- Confirm delete location dialog  -->
+        <v-dialog v-model="locationModel.options.delete" max-width="290">
+            <v-card>
+                <v-card-title class="headline">Stergere locatie?</v-card-title>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat="flat" @click="clearLocationModelAndClose">Inchide</v-btn>
+                    <v-btn flat large color="error" @click="removeLocation">Da, sterge</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <!-- Confirm delete room dialog -->
+        <v-dialog v-model="roomModel.options.delete" max-width="290">
+            <v-card>
+                <v-card-title class="headline">Stergere camera?</v-card-title>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat="flat" @click="clearRoomModelAndClose">Inchide</v-btn>
+                    <v-btn flat large color="error" @click="deleteRoom">Da, sterge</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <!-- Confirm delete individual room dialog -->
+        <v-dialog v-model="individualRoomModel.options.delete" max-width="290">
+            <v-card>
+                <v-card-title class="headline">Stergere camera?</v-card-title>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat="flat" @click="clearIndividualRoomModelAndClose">Inchide</v-btn>
+                    <v-btn flat large color="error" @click="deleteIndividualRoom">Da, sterge</v-btn>
+                </v-card-actions>
             </v-card>
         </v-dialog>
     </div>
@@ -300,319 +471,510 @@
 
 
 <script>
+  import {mapGetters} from 'vuex'
+  import axios from 'axios';
+  import moment from 'moment'
+  import Vue from 'vue'
 
-    import axios from 'axios'
-    import {mapActions,mapGetters} from 'vuex'
-    export default {
+  export default {
 
-      mounted() {
-        // this.getLocations();
-      },
+    data() {
+      return {
+        busy: false,
+        busyDateTable: false,
+        editingLocations:false,
+        editingRooms:false,
+        editingIndividualRooms:false,
 
-      data() {
-        return {
-
-          $_veeValidate: {
-            validator: 'new'
-          },
-
-          roomHeaders: [
-             { text: 'Type', value: 'type' },
-             { text: 'Number of rooms', value: 'num_rooms' },
-          ],
-
-
-          hasErros: false,
-          serverSideErrors: [],
-
-          dateLocationRoomsHeaders: [
-            { text: 'ID', value: 'id' },
-            {text: "Pret pe persoana", value: 'price_person'},
-            {text: "Numar persoane", value: 'person_number'}
-          ],
-
+        offerModelDefault: {
+          title: '',
+          description: '',
+          options: {
+            valid: false
+          }
+        },
+        dateModelDefault: {
           startDate: null,
-          endDate: null,
-          modal1: false,
-          modal2: false,
-          selectingDate : false,
-          editRoomDialog:false,
-          editRooms: [],
-          currentEditedRoom: {},
-          addingRoom : false,
-          originalRooms: [],
-          selectedOriginalRoomID : '',
-          roomTempId: 0,
-
-          newOffer : {
-            title: '',
-            description: '',
-            dates: [
-
-            ]
-          },
-
-
-          dateId: 0,
-          selectedLocations: [],
-          selectedLocationID: null,
-          text : 'lorem ipsum'
-
-        }
-      },
-
-      methods : {
-
-        ...mapActions({
-          getLocations : 'getLocations'
-        }),
-
-
-        createOffer() {
-
-          let validateValues = {
-            title : this.newOffer.title,
-            description: this.newOffer.title,
+          endDate:null,
+          options: {
+            add:false,
+            edit:  false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
           }
+        },
+        locationModelDefault: {
+          id: '',
+          title: '',
+          options: {
+            add:false,
+            edit: false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        roomModelDefault: {
+          id: '',
+          type: '',
+          options: {
+            add:false,
+            edit: false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        individualRoomModelDefault: {
+          id: 0,
+          price_person: '',
+          person_number:'',
+          options: {
+            add:false,
+            edit:  false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        offerModel: {
+          title: '',
+          description: '',
+          options: {
+            valid: false
+          }
+        },
+        dateModel: {
+          startDate: null,
+          endDate:null,
+          options: {
+            add:false,
+            edit: false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        locationModel: {
+          id: '',
+          title: '',
+          options: {
+            add:false,
+            edit: false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        roomModel: {
+          id: '',
+          type: '',
+          options: {
+            add:false,
+            edit: false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        individualRoomModel: {
+          id: 0,
+          price_person: '',
+          person_number:'',
+          options: {
+            add:false,
+            edit:  false,
+            delete:false,
+            valid: false,
+            editedIndex:0,
+            deletedIndex:0,
+          }
+        },
+        selectedLocationID: '',
+        selectedRoomTypeID: '',
+        startDateMenu: false,
+        endDateMenu:null,
 
-          this.$validator.validateAll(validateValues).then(result => {
+        //current date being edited.
+        currentDate: {
+          locations: [],
+        },
+        //current location being edited.
+        currentLocation: {
+          id: '',
+          rooms:[],
+        },
+        currentRoom:{
+          individualRooms: [],
+        },
+        validationRules: {
+          titleRules: [
+            v => !!v || 'Titlul ofertei este obligatoriu',
+            v => v.length <= 25 || 'Titlul nu poate contine peste 25 de caractere'
+          ],
+          descriptionRules: [
+            v => !!v || 'Descrierea ofertei este obligatorie',
+            v => v.length <= 2500 || 'Descrierea nu poate contine peste 2500 de caractere'
+          ],
+          startDateRules: [
+            v => !!v || 'Data este obligatorie',
+          ],
+          endDateRules: [
+            v => !!v || 'Data este obligatorie',
+          ],
+          locationRules: [
+            v => !!v || 'Locatia este obligatorie',
+            v => !this.currentDate.locations.find(l => l.id === v) || 'Locatia a fost deja adaugata'
+          ],
+          roomRules: [
+            v => !!v || 'Tipul de camera este obligatoriu',
+            v => !this.currentLocation.rooms.find(r => r.id === v) || 'Camera a fost deja adaugata'
+          ],
+          pricePerson: [
+            v => !!v || 'Pretul pe persoana este obligatoriu',
+            v => !isNaN(v) || 'Este necesara o valoare numerica'
 
-            if (!result) {
-              return;
-            }
+          ],
+          personNumber: [
+            v => !!v || 'Numarul de persoane pe camera este obligatoriu',
+            v => !isNaN(v) || 'Este necesara o valoare numerica'
+          ]
+        },
 
-            axios.post('/api/offers/add', {newOffer: this.newOffer}).then((response) => {
+        datesTableHeaders: [
+          {text:'ID', value:'id'},
+          {text:'Data inceput', value:'start_date'},
+          {text:'Data sfarsit', value:'end_date'}
+        ],
+        locationsTableHeaders: [
+          {text:'ID', value:'id'},
+          {text:'Nume', value:'name'},
+        ],
+        roomsTableHeaders: [
+          {text:'ID', value:'id'},
+          {text:'Tip de camera', value:'type'},
+        ],
+        individualRoomHeaders: [
+          {text: 'ID', value: 'id'},
+          {text: 'Pret pe persoana', value:'price_person'},
+          {text: 'Persoane pe camera', value:'person_number'}
+        ],
+        falseId: 0, //For new offers only.
+        roomFalseId: 0,
 
-              console.log(response);
-              this.$emit('update:dialog', false);
-              this.$emit('update:successNew', true);
+        dates: []
 
-            }).catch((error) => {
+      }
+    },
+    methods: {
 
-              console.log(error);
+      async createOffer()  {
 
-              this.hasErrors = true;
-              this.serverSideErrors = error.response.data;
-
+        // if(this.offerModel.options.valid){
+          this.busy = true;
+          try {
+            const {data} = await  axios.post('/api/offers/add',{
+              newOffer: this.offerModel,
+              dates: this.dates,
             })
-          }).catch(error => {
-            console.log(error);
-          });
-        },
-
-        addDate() {
-
-          let validateValues = {
-            startDate : this.startDate,
-            endDate: this.endDate,
-          }
-
-          this.$validator.validateAll(validateValues).then(result => {
-
-            if (!result) {
-              return;
-            }
-
-            let date = {
-              id: this.dateId++,
-              start_date: this.startDate,
-              end_date: this.endDate,
-              locations: [],
-              offerDateLocationRooms: []
-            };
-            this.newOffer.dates.push(date);
-            this.startDate = null;
-            this.endDate = null;
-
-            this.addSelectedLocationsToNewDate(date);
-
-          }).catch(error => {
-
-          });
-
-
-
-        },
-
-        addSelectedLocationsToNewDate(date) {
-          for(let location of this.selectedLocations)
-          {
-            date.locations.push(location);
-            this.createOfferDateLocationRooms(date,location);
-          }
-        },
-
-        //for each room in the locations belonging to this OfferDate, create the OfferDateLocationRoom object
-        createOfferDateLocationRooms (date,location) {
-            for(let room of location.rooms) {
-               let num = room.predefined_values.num_rooms;
-               if(num > 0){
-                 for(let i = 0; i < num; i++) {
-                   let r = {};
-                   r.id = this.roomTempId++;
-                   r.location_id = location.id;
-                   r.room_id = room.id;
-                   r.type = room.type;
-                   r.num_rooms = room.predefined_values.num_rooms;
-                   r.offer_details = {};
-                   if(room.predefined_values.price_person === null) {
-                     r.offer_details.price_person = 0;
-                   } else {
-                     r.offer_details.price_person = room.predefined_values.price_person;
-                   }
-                   if(room.predefined_values.person_number === null) {
-                     r.offer_details.person_number = 0;
-                   } else {
-                     r.offer_details.person_number = room.predefined_values.person_number;
-                   }
-
-                   date.offerDateLocationRooms.push(r);
-                 }
-               }
-            }
-        },
-
-        //same as above, but only for one room.
-        createOfferDateLocationRoom (date,location,room) {
-            let num = room.predefined_values.num_rooms;
-            if(num > 0){
-              for(let i = 0; i < num; i++) {
-                let r = {};
-                r.id = this.roomTempId++;
-                r.location_id = location.id;
-                r.room_id = room.id;
-                r.type = room.type;
-                r.num_rooms = room.predefined_values.num_rooms;
-                r.offer_details = {};
-                if(room.predefined_values.price_person === null) {
-                  r.offer_details.price_person = 0;
-                } else {
-                  r.offer_details.price_person = room.predefined_values.price_person;
-                }
-                if(room.predefined_values.person_number === null) {
-                  r.offer_details.person_number = 0;
-                } else {
-                  r.offer_details.person_number = room.predefined_values.person_number;
-                }
-                date.offerDateLocationRooms.push(r);
-              }
-            }
-        },
-
-        addLocation() {
-            let index = this.selectedLocations.indexOf(this.selectedLocation)
-            if(index === -1) {
-
-               this.selectedLocations.push(this.selectedLocation);
-
-              for(let date of this.newOffer.dates) {
-                date.locations.push(this.selectedLocation);
-                this.createOfferDateLocationRooms(date,this.selectedLocation)
-              }
-            } else {alert('location already added');}
-        },
-
-        addRoom(date,location) {
-          for (let r of location.rooms) {
-            console.log(r)
-            console.log(this.selectedOriginalRoomID)
-            if(r.id === this.selectedOriginalRoomID) {
-              alert('Romm type already exists in the location')
-              return;
+            console.log(data);
+            this.busy=false;
+            console.log(data);
+            this.$store.dispatch('responseMessage', {
+              type: 'success',
+              text: 'Oferta adaugata'
+            });
+            this.closeCreateOffer();
+            this.$emit('update:reindex', true)
+          } catch (e){
+            console.log(e.response.data.errors);
+            for(let error of e.response.data.errors) {
+              this.$store.dispatch('responseMessage', {
+                type: 'error',
+                text: error
+              })
             }
           }
-          let room = this.findRoom(location);
-          location.rooms.push(room);
-          this.createOfferDateLocationRoom(date,location,room);
-          this.addingRoom = false;
-
-        },
-
-        findRoom(location) {
-          for(let loc of this.locations) {
-            if(location.id === loc.id ) {
-              for(let room of loc.rooms){
-                if(room.id === this.selectedOriginalRoomID)
-                {
-                  return JSON.parse(JSON.stringify(room));
-                }
-              }
-            }
-          }
-          return false;
-        },
-
-        fetchRooms(locationId)
-        {
-          this.originalRooms = [];
-
-          for(let location of this.locations) {
-            if(location.id === locationId)
-            {
-               this.originalRooms = JSON.parse(JSON.stringify(location.rooms));
-               this.addingRoom = true;
-               return;
-            }
-          }
-        },
-
-        //To edit all variations of this room.
-        editRoom(room,date,location) {
-          this.editRoomDialog = true;
-
-          let deepObj  = [];
-          for(let r of date.offerDateLocationRooms) {
-            if(r.room_id === room.id && r.location_id === location.id) {
-              deepObj.push(r)
-            }
-          }
-          this.currentEditedRoom = room; // to use aditional data in the modal.
-         this.editRooms = deepObj;
-
-        },
-
-        deleteRoom(date,location,room) {
-
-          let index = location.rooms.indexOf(room)
-
-          let yes = confirm('Are you sure you want to delete this item?');
-          console.log(yes)
-            if(yes) {
-
-              let removals = [];
-              for(let r of date.offerDateLocationRooms) {
-                console.log(room.id);
-                if(r.room_id === room.id && r.location_id === location.id) {
-                  removals.push(date.offerDateLocationRooms.indexOf(r));
-                }
-              }
-
-              let newOfferDate = date.offerDateLocationRooms.filter(function(r) {
-                return !(r.room_id === room.id && r.location_id === location.id)
-              });
-
-              console.log(newOfferDate);
-              date.offerDateLocationRooms = newOfferDate;
-              location.rooms.splice(index, 1);
-            }
-        }
+        // }
       },
 
-      computed : {
-        ...mapGetters({
-          locations : 'GET_LOCATIONS'
-        }),
+      // dayFormat(){return "dd"},
 
-        selectedLocation() {
-          for(let location of this.locations) {
-            if(location.id === this.selectedLocationID){
-              return JSON.parse(JSON.stringify(location));
-            }
+      //TABLES
+      //for the given date, set it as currentDate and open the locations in a table
+      editLocations(date){
+        this.currentDate = {}; //empty in case of rogue values.
+        this.currentDate = date;
+        this.editingLocations = true;
+      },
+      //for the given location, set it as currentLocation and open the rooms in a table
+      editRooms(location){
+        this.currentLocation= {};
+        this.currentLocation = location;
+        this.editingRooms = true;
+      },
+      //for the given room, set it as currentRoom and open the individual rooms in a table
+      editIndividualRooms(room){
+        this.currentRoom = {};
+        this.currentRoom = room;
+        if(!this.currentRoom.individualRooms){
+          Vue.set(this.currentRoom, 'individualRooms',[]);7
+        }
+        this.editingIndividualRooms = true;
+      },
+
+      // for displaying the start_date and end_date in the table, use a computed function.  To store it.
+
+
+      //DATES CRUD
+      //empty dateModel values and open dialog.
+      addDateDialog(){
+        this.dateModel = JSON.parse(JSON.stringify(this.dateModelDefault));
+        this.dateModel.options.add = true;
+      },
+      //method used to receive the date object and to show the edit dialog
+      editDateDialog(date){
+        this.clearDateModelAndClose();
+        this.dateModel.startDate = date.start_date;
+        this.dateModel.endDate = date.end_date;
+        this.dateModel.options.editedIndex = this.dates.indexOf(date);
+        this.dateModel.options.edit = true;
+      },
+      //prepare date for delete and open confirmation dialog
+      deleteDateDialog(date){
+        this.clearDateModelAndClose();
+        this.dateModel.options.deletedIndex = this.dates.indexOf(date);
+        this.dateModel.options.delete = true;
+      },
+
+      //use current dateModel to create a new date object for this offer
+      addDate(){
+        let date = {};
+        date.id = this.falseId++;
+        date.start_date = this.dateModel.startDate;
+        date.end_date = this.dateModel.endDate
+        date.locations = [];
+        this.dates.push(date);
+        this.clearDateModelAndClose();
+      },
+      //update a date in the dates array
+      updateDate(){
+        let index = this.dateModel.options.editedIndex;
+        this.dates[index].start_date = this.dateModel.startDate;
+        this.dates[index].end_date = this.dateModel.endDate;
+        this.clearDateModelAndClose();
+      },
+      deleteDate(){
+        let index = this.dateModel.options.deletedIndex;
+        this.dates.splice(index,1);
+        this.clearDateModelAndClose();
+      },
+
+
+      //LOCATIONS CRUD
+      addLocationDialog(){
+        this.clearLocationModelAndClose();
+        this.selectedLocationID = '';
+        this.locationModel.options.add = true;
+      },
+      //prepare location for delete and open confirmation dialog.
+      deleteLocationDialog(location){
+        this.clearLocationModelAndClose();
+        this.locationModel.options.deletedIndex = this.currentDate.locations.indexOf(location);
+        this.locationModel.options.delete = true;
+      },
+
+      //add the new location to the date being modified.
+      addLocation(){
+        let location = JSON.parse(JSON.stringify(this.selectedLocation));
+        this.currentDate.locations.push(location);//assign copy of the object, not the object in vuex store.
+        location.rooms.forEach(room => this.generateIndividualRooms(room));
+        this.locationModel.options.add = false;
+        this.clearLocationModelAndClose();
+      },
+      //given the index of the location, remove it from the currentDate
+      removeLocation(){
+        let index = this.locationModel.options.deletedIndex;
+        this.currentDate.locations.splice(index,1);
+        this.clearLocationModelAndClose();
+      },
+
+  
+      //ROOMS CRUD
+      addRoomDialog(){
+        this.clearRoomModelAndClose();
+        this.roomModel.options.add = true;
+      },
+      //prepare room for delete and open confirmation dialog
+      deleteRoomDialog(room){
+        this.clearRoomModelAndClose();
+        this.roomModel.options.deletedIndex = this.currentLocation.rooms.indexOf(room);
+        this.roomModel.options.delete = true;
+      },
+      //assign room type to the currentLocation
+      addRoom(){
+        let room = JSON.parse(JSON.stringify(this.selectedRoomType))
+        this.currentLocation.rooms.push(room);
+        this.generateIndividualRooms(room);
+        this.clearRoomModelAndClose();
+      },
+      //remove room from currentLocation
+      deleteRoom(){
+        let index = this.roomModel.options.deletedIndex;
+        this.currentLocation.rooms.splice(index,1);
+        this.clearRoomModelAndClose();
+      },
+
+      //INDIVIDUAL ROOMS CRUD
+      //Clear model and open dialog for adding invididual room
+      addIndividualRoomDialog(){
+        this.clearIndividualRoomModelAndClose();
+        this.individualRoomModel.options.add = true;
+      },
+      //prepare individual room for editing and open edit dialog
+      editIndividualRoomDialog(individualRoom){
+        this.clearIndividualRoomModelAndClose();
+        this.individualRoomModel.price_person = individualRoom.price_person;
+        this.individualRoomModel.person_number = individualRoom.person_number;
+        this.individualRoomModel.options.editedIndex = this.currentRoom.individualRooms.indexOf(individualRoom);
+        this.individualRoomModel.options.edit = true;
+      },
+      //prepare individual room for delete and open confirmation dialog
+      deleteIndividualRoomDialog(individualRoom){
+        this.clearIndividualRoomModelAndClose();
+        this.individualRoomModel.options.deletedIndex = this.currentRoom.individualRooms.indexOf(individualRoom);
+        this.individualRoomModel.options.delete = true;
+      },
+
+      //assign a new individual room to the currentRoom.
+      addIndividualRoom(){
+        let individualRoom = {};
+        individualRoom.id = this.roomFalseId++;
+        //data needed for persistence.
+        individualRoom.price_person = this.individualRoomModel.price_person;
+        individualRoom.person_number = this.individualRoomModel.person_number;
+        this.currentRoom.individualRooms.push(individualRoom);
+        this.clearIndividualRoomModelAndClose();
+      },
+
+      updateIndividualRoom(){
+        let individualRoom = this.currentRoom.individualRooms[this.individualRoomModel.options.editedIndex];
+        individualRoom.person_number = this.individualRoomModel.person_number;
+        individualRoom.price_person = this.individualRoomModel.price_person;
+        this.clearIndividualRoomModelAndClose();
+      },
+      //remove from currentRoom
+      deleteIndividualRoom(){
+        let index = this.individualRoomModel.options.deletedIndex;
+        this.currentRoom.individualRooms.splice(index,1);
+        this.clearIndividualRoomModelAndClose();
+      },
+
+
+      //FORMAT, HELPERS AND OTHER METHODS.
+      dateConcat(date){
+        let start =  this.friendlyDateFormat(new Date(date.start_date));
+        let end = this.friendlyDateFormat(new Date(date.end_date));
+        return start + ' - ' + end
+      },
+      //return formated date for display
+      friendlyDateFormat(date) {
+        let dateObj = new Date(date);
+        return moment(dateObj).format('DD-MM-YYYY');
+      },
+
+      //given the num_rooms assigned to the room type, generate the individual rooms.
+      generateIndividualRooms(room){
+        if(room.predefined_values.num_rooms > 0){
+
+          Vue.set(room, 'individualRooms',[]);
+          let numRooms = room.predefined_values.num_rooms;
+
+          for(let i = numRooms; i !== 0 ; i--){
+            let individualRoom = {};
+            individualRoom.id = this.roomFalseId++;
+            //data needed for persistence.
+            individualRoom.price_person = room.predefined_values.price_person;
+            individualRoom.person_number = room.predefined_values.person_number;
+            room.individualRooms.push(individualRoom);
           }
         }
       },
+      //set offer model to default values, reset form fields and close any add,edit or delete dialogs.
+      clearOfferModel(){
+        this.$refs.offerFields.reset();
+        this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+      },
 
-      props: ['dialog','successNew']
-    }
+      //set date model to default values, reset form fields and close any add,edit or delete dialogs.
+      clearDateModelAndClose(){
+        this.$refs.dateFields.reset();
+        this.dateModel = JSON.parse(JSON.stringify(this.dateModelDefault));
+      },
 
+      //set location model to default values, reset form fields and close any add,edit or delete dialogs.
+      clearLocationModelAndClose(){
+        this.$refs.locationFields.reset();
+        this.locationModel = JSON.parse(JSON.stringify(this.locationModelDefault));
+      },
+      //set room model to default values, reset form fields and close any add,edit or delete dialogs.
+      clearRoomModelAndClose(){
+        this.$refs.roomFields.reset();
+        this.roomModel = JSON.parse(JSON.stringify(this.roomModelDefault));
+      },
+      //set individual room model to default values, reset form fields and close any add,edit or delete dialogs.
+      clearIndividualRoomModelAndClose(){
+        this.$refs.individualRoomFields.reset();
+        this.individualRoomModel = JSON.parse(JSON.stringify(this.individualRoomModelDefault));
+      },
+      clearAllData(){
+        this.clearOfferModel();
+        this.clearDateModelAndClose();
+        this.clearLocationModelAndClose();
+        this.clearRoomModelAndClose();
+        this.clearIndividualRoomModelAndClose();
+        this.dates = [];
+      },
+      //deactivate any active tables except the default one, which is for listing dates
+      closeTableViews(){
+        this.editingLocations = false;
+        this.editingRooms = false;
+        this.editingIndividualRooms = false;
+      },
+
+      async closeCreateOffer(){
+        await this.clearAllData();
+        await this.closeTableViews();
+        this.$emit('update:dialog', false);
+      }
+    },
+
+    computed: {
+      ...mapGetters({
+        locations : 'GET_LOCATIONS'
+      }),
+
+      selectedLocation(){
+        return this.locations.find(l => l.id === this.selectedLocationID);
+      },
+      selectedRoomType(){
+        return this.fetchUnmodifiedLocation.rooms.find(r => r.id === this.selectedRoomTypeID);
+      },
+      //returns the original location in store, this is used to retrieve the rooms of the location in case the user deletes them or wants to add another type.
+      fetchUnmodifiedLocation(){
+        return this.currentLocation.id ?  this.locations.find(l => l.id === this.currentLocation.id) : '';
+      },
+
+    },
+    props: ['dialog','reindex']
+
+  }
 </script>
