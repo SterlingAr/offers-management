@@ -77,8 +77,8 @@
                                         >
                                             <template slot="items" slot-scope="props">
                                                 <td class="text-xs-left">{{ props.item.id }}</td>
-                                                <td class="text-xs-left">{{ props.item.start_date }}</td>
-                                                <td class="text-xs-left">{{ props.item.end_date}}</td>
+                                                <td class="text-xs-left">{{friendlyDateFormat(props.item.start_date)}}</td>
+                                                <td class="text-xs-left">{{friendlyDateFormat(props.item.end_date)}}</td>
                                                 <td class="text-xs-right">
                                                     <v-btn color="indigo" dark @click="editLocations(props.item)">
                                                         <v-badge color="blue" rigth>
@@ -106,7 +106,7 @@
                                 <v-card light>
                                     <v-toolbar color="indigo" dark>
                                         <v-icon>event</v-icon>
-                                        <v-toolbar-title> Listare locati pentru data {{ dateFormat(this.currentDate) }}</v-toolbar-title>
+                                        <v-toolbar-title> Listare locati pentru data {{ dateConcat(this.currentDate) }}</v-toolbar-title>
                                         <v-spacer></v-spacer>
                                         <v-btn icon dark right @click="editingLocations = false">
                                             <v-icon>keyboard_backspace</v-icon>
@@ -269,7 +269,11 @@
                                         readonly
                                         required
                                 ></v-text-field>
-                                <v-date-picker v-model="dateModel.startDate" @input="$refs.startDateMenu.save(dateModel.startDate)"></v-date-picker>
+                                <v-date-picker
+                                        v-model="dateModel.startDate"
+                                        @input="$refs.startDateMenu.save(dateModel.startDate)"
+                                >
+                                </v-date-picker>
                             </v-menu>
                         </v-flex>
                         <v-flex xs12>
@@ -315,7 +319,7 @@
         >
             <v-card>
                 <v-card-title>
-                    <span class="headline">Adauga o locatie pentru data {{dateFormat(currentDate)}}</span>
+                    <span class="headline">Adauga o locatie pentru data {{dateConcat(currentDate)}}</span>
                 </v-card-title>
                 <v-card-text>
                     <v-form  v-model="locationModel.options.valid"
@@ -469,6 +473,7 @@
 <script>
   import {mapGetters} from 'vuex'
   import axios from 'axios';
+  import moment from 'moment'
   import Vue from 'vue'
 
   export default {
@@ -480,7 +485,6 @@
         editingLocations:false,
         editingRooms:false,
         editingIndividualRooms:false,
-        addingLocation: false,
 
         offerModelDefault: {
           title: '',
@@ -702,6 +706,8 @@
         // }
       },
 
+      // dayFormat(){return "dd"},
+
       //TABLES
       //for the given date, set it as currentDate and open the locations in a table
       editLocations(date){
@@ -724,6 +730,8 @@
         }
         this.editingIndividualRooms = true;
       },
+
+      // for displaying the start_date and end_date in the table, use a computed function.  To store it.
 
 
       //DATES CRUD
@@ -811,7 +819,6 @@
         this.roomModel.options.deletedIndex = this.currentLocation.rooms.indexOf(room);
         this.roomModel.options.delete = true;
       },
-
       //assign room type to the currentLocation
       addRoom(){
         let room = JSON.parse(JSON.stringify(this.selectedRoomType))
@@ -873,9 +880,17 @@
 
 
       //FORMAT, HELPERS AND OTHER METHODS.
-      dateFormat(date){
-        return date.start_date + ' - ' + date.end_date
+      dateConcat(date){
+        let start =  this.friendlyDateFormat(new Date(date.start_date));
+        let end = this.friendlyDateFormat(new Date(date.end_date));
+        return start + ' - ' + end
       },
+      //return formated date for display
+      friendlyDateFormat(date) {
+        let dateObj = new Date(date);
+        return moment(dateObj).format('DD-MM-YYYY');
+      },
+
       //given the num_rooms assigned to the room type, generate the individual rooms.
       generateIndividualRooms(room){
         if(room.predefined_values.num_rooms > 0){
@@ -925,6 +940,7 @@
         this.clearDateModelAndClose();
         this.clearLocationModelAndClose();
         this.clearRoomModelAndClose();
+        this.clearIndividualRoomModelAndClose();
         this.dates = [];
       },
       //deactivate any active tables except the default one, which is for listing dates

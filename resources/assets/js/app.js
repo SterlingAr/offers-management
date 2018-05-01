@@ -6,8 +6,6 @@ import { i18n } from '~/plugins'
 import App from '~/components/App'
 import '~/components'
 
-import animate from 'animate.css';
-
 Vue.use(Vuetify)
 
 Vue.config.productionTip = false
