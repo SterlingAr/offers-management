@@ -24,6 +24,11 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::patch('settings/profile', 'Settings\UpdateProfile');
     Route::patch('settings/password', 'Settings\UpdatePassword');
 
+    Route::get('/available-rooms', 'OfferController@getAvailableRooms');
+    Route::post('/coupons', 'CouponsController@create');
+    Route::get('/coupons', 'CouponsController@get');
+    Route::get('/rooms', 'RoomController@index');
+
 
     Route::get('/offers','OfferController@index');
     Route::post('/offers/search','OfferController@indexTable');
@@ -33,10 +38,6 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/offers/update', 'OfferController@update');
     Route::delete('/offers/delete/{offer_id}', 'OfferController@destroy');
     Route::get('/offers-list','OfferController@getOffersList');
-    Route::get('/available-rooms', 'OfferController@getAvailableRooms');
-
-    Route::post('/coupons', 'CouponsController@create');
-    Route::get('/coupons', 'CouponsController@get');
 
 
     Route::get('/locations', 'LocationController@index');
@@ -45,7 +46,13 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/locations/store', 'LocationController@store');
     Route::post('/locations/update/{location_id}', 'LocationController@update');
     Route::delete('/locations/delete/{location_id}', 'LocationController@destroy');
-    Route::get('/rooms', 'RoomController@index');
+
+    Route::post('/sales/search', 'SalesController@indexTable');
+    Route::get('/sales/{sale_id}', 'SalesController@show');
+    Route::post('/sales/add', 'SalesController@store');
+    Route::post('/sales/update', 'SalesController@update');
+    Route::delete('/sales/delete/{sale_id', 'SalesController@delete');
+
 
 
 });

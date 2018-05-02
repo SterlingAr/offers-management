@@ -20,8 +20,7 @@ class CreateSalesTable extends Migration
             $table->string('email');
             $table->string('phone');
             $table->integer('offer_id')->unsigned();
-            $table->integer('location_id')->unsigned();
-            $table->integer('offer_date_id')->unsigned();
+            $table->integer('offer_date_location_id')->unsigned();
             $table->integer('total_person_number');
             $table->enum('payment_status', ['paid', 'notpaid'])->default("notpaid");
             $table->string('coupon_code')->nullable();

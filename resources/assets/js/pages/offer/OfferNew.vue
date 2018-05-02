@@ -648,7 +648,6 @@
             v => !isNaN(v) || 'Este necesara o valoare numerica'
           ]
         },
-
         datesTableHeaders: [
           {text:'ID', value:'id'},
           {text:'Data inceput', value:'start_date'},
@@ -679,21 +678,23 @@
       async createOffer()  {
 
         // if(this.offerModel.options.valid){
-          this.busy = true;
           try {
+            this.busy = true;
             const {data} = await  axios.post('/api/offers/add',{
               newOffer: this.offerModel,
               dates: this.dates,
             })
-            console.log(data);
-            this.busy=false;
-            console.log(data);
+            await this.closeCreateOffer();
+
+
             this.$store.dispatch('responseMessage', {
               type: 'success',
               text: 'Oferta adaugata'
             });
-            this.closeCreateOffer();
-            this.$emit('update:reindex', true)
+
+            this.$emit('update:reindex', true);
+
+
           } catch (e){
             console.log(e.response.data.errors);
             for(let error of e.response.data.errors) {
@@ -704,6 +705,7 @@
             }
           }
         // }
+
       },
 
       // dayFormat(){return "dd"},
@@ -952,9 +954,11 @@
 
       async closeCreateOffer(){
         await this.clearAllData();
-        await this.closeTableViews();
+        this.closeTableViews();
         this.$emit('update:dialog', false);
+        this.busy = false;
       }
+
     },
 
     computed: {

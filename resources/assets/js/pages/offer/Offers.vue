@@ -104,6 +104,7 @@ import debounce from '../../tools/debounce/debounce.js'
         this.offers = [];
         axios.post('/api/offers/search', { query: this.search}).then((response) => {
           this.offers = response.data.offers;
+          console.log(this.search)
         }).catch((error) => {
             console.log(error);
         });
@@ -155,7 +156,6 @@ import debounce from '../../tools/debounce/debounce.js'
     },
 
     watch : {
-
       reindex: function (val){
         val && this.indexTable();
       }
