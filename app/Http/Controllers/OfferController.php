@@ -15,6 +15,13 @@ class OfferController extends Controller
 {
 
 
+    public function index(){
+        $offers = Offer::all();
+        return response()->json([
+            "offers" => $offers->toArray()
+        ]);
+    }
+
     public function indexTable(Request $request) {
         $offers = Offer::select([
             'id',
@@ -261,7 +268,8 @@ class OfferController extends Controller
                 foreach($room['individualRooms'] as $individualRoom){
                     $date->locationRooms()->attach($locationRoom, [
                         'price_person' => $individualRoom['price_person'],
-                        'person_number' => $individualRoom['person_number']
+                        'person_number' => $individualRoom['person_number'],
+                        'vacant_places' => $individualRoom['vacant_places']
                     ]);
                 }
             }
@@ -354,7 +362,8 @@ class OfferController extends Controller
                 ->where('id', $individualRoom['id'])
                 ->update([
                     'price_person' => $individualRoom['price_person'],
-                    'person_number' => $individualRoom['person_number']
+                    'person_number' => $individualRoom['person_number'],
+                    'vacant_places' => $individualRoom['vacant_places']
                 ]);
 
         }

@@ -20,7 +20,6 @@ class CreateSalesTable extends Migration
             $table->string('email');
             $table->string('phone');
             $table->integer('offer_id')->unsigned();
-            $table->integer('offer_date_location_id')->unsigned();
             $table->integer('total_person_number');
             $table->enum('payment_status', ['paid', 'notpaid'])->default("notpaid");
             $table->string('coupon_code')->nullable();
@@ -28,20 +27,20 @@ class CreateSalesTable extends Migration
 
             $table->timestamps();
 
-            $table->foreign('location_id')
-                ->references('id')
-                ->on('locations')
-                ->onDelete('cascade');
+//            $table->foreign('location_id')
+//                ->references('id')
+//                ->on('locations')
+//                ->onDelete('cascade');
 
             $table->foreign('offer_id')
                 ->references('id')
                 ->on('offers')
                 ->onDelete('cascade');
 
-            $table->foreign('offer_date_id')
-                ->references('id')
-                ->on('offer_dates')
-                ->onDelete('cascade');
+//            $table->foreign('offer_date_id')
+//                ->references('id')
+//                ->on('offer_dates')
+//                ->onDelete('cascade');
 
 
 

@@ -155,6 +155,7 @@ import debounce from '../../tools/debounce/debounce.js'
       }),
     },
 
+
     watch : {
       reindex: function (val){
         val && this.indexTable();

@@ -214,6 +214,7 @@
                                                 <td class="text-xs-left">{{ props.item.id }}</td>
                                                 <td class="text-xs-left">{{ props.item.price_person }}</td>
                                                 <td class="text-xs-left">{{ props.item.person_number }}</td>
+                                                <td class="text-xs-left">{{ props.item.vacant_places }}</td>
                                                 <td class="text-xs-right">
                                                     <v-btn icon class="mx-0" @click="editIndividualRoomDialog(props.item)">
                                                         <v-icon color="teal">edit</v-icon>
@@ -396,7 +397,7 @@
                     >
                         <v-flex xs12>
                             <v-text-field
-                                    label="Price person"
+                                    label="Pret pe persoana"
                                     v-model.number="individualRoomModel.price_person"
                                     :rules="validationRules.pricePerson"
                                     required
@@ -404,9 +405,17 @@
                         </v-flex>
                         <v-flex xs12>
                             <v-text-field
-                                    label="Person number"
+                                    label="Numar de persoane pe camera"
                                     v-model.number="individualRoomModel.person_number"
                                     :rules="validationRules.personNumber"
+                                    required
+                            ></v-text-field>
+                        </v-flex>
+                        <v-flex xs12>
+                            <v-text-field
+                                    label="Locuri disponibile"
+                                    v-model.number="individualRoomModel.vacant_places"
+                                    :rules="validationRules.vacantPlaces"
                                     required
                             ></v-text-field>
                         </v-flex>
@@ -533,6 +542,7 @@
           id: 0,
           price_person: '',
           person_number:'',
+          vacant_places:'',
           options: {
             add:false,
             edit:  false,
@@ -589,6 +599,7 @@
           id: 0,
           price_person: '',
           person_number:'',
+          vacant_places: '',
           options: {
             add:false,
             edit:  false,
@@ -640,12 +651,15 @@
           ],
           pricePerson: [
             v => !!v || 'Pretul pe persoana este obligatoriu',
-            v => !isNaN(v) || 'Este necesara o valoare numerica'
-
+            v => /^\d+$/.test(v) || 'Este necesara o valoare numerica'
           ],
           personNumber: [
             v => !!v || 'Numarul de persoane pe camera este obligatoriu',
-            v => !isNaN(v) || 'Este necesara o valoare numerica'
+            v => /^\d+$/.test(v) || 'Este necesara o valoare numerica'
+          ],
+          vacantPlaces: [
+            v => /^\d+$/.test(v) || 'Este necesara o valoare numerica',
+            v => v <= this.individualRoomModel.person_number || 'Nu puteti specifica mai multe locuri disponibile decate persoane incap in camera'
           ]
         },
         datesTableHeaders: [
@@ -664,11 +678,11 @@
         individualRoomHeaders: [
           {text: 'ID', value: 'id'},
           {text: 'Pret pe persoana', value:'price_person'},
-          {text: 'Persoane pe camera', value:'person_number'}
+          {text: 'Persoane pe camera', value:'person_number'},
+          {text: 'Locuri disponibile', value:'vacant_places'}
         ],
         falseId: 0, //For new offers only.
         roomFalseId: 0,
-
         dates: []
 
       }
@@ -863,6 +877,7 @@
         //data needed for persistence.
         individualRoom.price_person = this.individualRoomModel.price_person;
         individualRoom.person_number = this.individualRoomModel.person_number;
+        individualRoom.vacant_places = this.individualRoomModel.vacant_places;
         this.currentRoom.individualRooms.push(individualRoom);
         this.clearIndividualRoomModelAndClose();
       },
@@ -871,6 +886,7 @@
         let individualRoom = this.currentRoom.individualRooms[this.individualRoomModel.options.editedIndex];
         individualRoom.person_number = this.individualRoomModel.person_number;
         individualRoom.price_person = this.individualRoomModel.price_person;
+        individualRoom.vacant_places = this.individualRoomModel.vacant_places;
         this.clearIndividualRoomModelAndClose();
       },
       //remove from currentRoom
@@ -906,6 +922,7 @@
             //data needed for persistence.
             individualRoom.price_person = room.predefined_values.price_person;
             individualRoom.person_number = room.predefined_values.person_number;
+            individualRoom.vacant_places = room.predefined_values.person_number;
             room.individualRooms.push(individualRoom);
           }
         }

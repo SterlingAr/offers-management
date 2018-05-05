@@ -19,6 +19,7 @@ class OfferDatesLocationRoomTable extends Migration
             $table->integer('location_room_id')->unsigned();
             $table->integer('price_person')->unsigned()->nullable();
             $table->integer('person_number')->unsigned()->nullable();
+            $table->integer('vacant_places')->unsigned()->nullable();
 //            $table->timestamps();
         });
     }

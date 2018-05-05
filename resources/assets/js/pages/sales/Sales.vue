@@ -43,10 +43,9 @@
             </v-data-table>
         </v-card>
 
-        <new-sale :dialog.sync="dialog"></new-sale>
+        <new-sale :dialog.sync="dialog" :initial-offers="initialOffers"></new-sale>
     </div>
 </template>
-
 
 <script>
   import SalesNew from './SalesNew'
@@ -61,7 +60,6 @@
     },
     mounted() {
       console.log('Component mounted.');
-      this.$store.dispatch('getOffers')
     },
 
     data(){
@@ -70,6 +68,7 @@
         dialog:false,
         search: '',
         delay:4000,
+        initialOffers: [],
 
         salesHeaders: [
           {text: 'ID', value: 'id'},
@@ -100,6 +99,7 @@
           console.log(e);
         }
       },
+
 
       newOffer() {
         this.dialogNew = true;
