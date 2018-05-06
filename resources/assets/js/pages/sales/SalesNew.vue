@@ -23,7 +23,7 @@
                     <v-toolbar-title>Adauaga Vanzare</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click.native="dialog = false">Adauga</v-btn>
+                        <v-btn dark flat @click.native="createSale">Adauga</v-btn>
                     </v-toolbar-items>
                 </v-toolbar>
                 <v-card-text>
@@ -38,7 +38,10 @@
                                         <v-spacer></v-spacer>
                                     </v-toolbar>
                                     <v-card-text >
-                                        <v-form v-model="saleModel.options.valid">
+                                        <v-form
+                                                v-model="saleModel.options.valid"
+                                                ref="saleFields"
+                                        >
                                             <v-text-field
                                                     label="Nume"
                                                     v-model="saleModel.first_name"
@@ -69,13 +72,52 @@
                                     </v-card-text>
                                 </v-card>
                             </v-flex>
+                            <!-- Listare camere adaugate -->
+                            <v-flex md6 xs12 v-if="!addingRoomsToSale">
+                                <v-card light>
+                                    <v-toolbar color="indigo" dark>
+                                        <v-icon>event</v-icon>
+                                        <v-toolbar-title>Camere adaugate la vanzare</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                        <v-btn icon dark right @click="showStepper">
+                                            <v-icon>add</v-icon>
+                                        </v-btn>
+                                    </v-toolbar>
+                                </v-card>
+                                <v-card-text>
+                                    <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
+                                    <v-data-table
+                                            :headers="roomsInSaleHeaders"
+                                            :items="selectedRoomsForSale"
+                                            class="elevation-1"
+                                    >
+                                        <template slot="items" slot-scope="props">
+                                            <td class="text-xs-left">{{ props.item.id }}</td>
+                                            <td class="text-xs-left">{{dateConcat(props.item.date)}}</td>
+                                            <td class="text-xs-left">{{props.item.location.name}}</td>
+                                            <td class="text-xs-left">{{props.item.type}}</td>
+                                            <td class="text-xs-left">{{props.item.persons_going}}</td>
+                                            <td class="text-xs-left">{{props.item.price_person}}</td>
+                                            <td class="text-xs-left">{{ totalPrice(props.item.price_person, props.item.persons_going)}}</td>
+                                            <td class="text-xs-right">
+                                                <v-btn icon class="mx-0" @click="editRoomFromSaleDialog(props.item)">
+                                                    <v-icon color="teal">edit</v-icon>
+                                                </v-btn>
+                                            </td>
+                                        </template>
+                                    </v-data-table>
+                                </v-card-text>
+                            </v-flex>
                             <!-- STEPPER CONTAINER -->
-                            <v-flex md6 xs12>
+                            <v-flex md6 xs12 v-if="addingRoomsToSale">
                                 <v-card light>
                                     <v-toolbar color="indigo" dark>
                                         <v-icon>event</v-icon>
                                         <v-toolbar-title>Selectioneaza oferta, data si amenajarile respective</v-toolbar-title>
                                         <v-spacer></v-spacer>
+                                        <v-btn class="left" color="white" large flat  light @click="closeStepper">
+                                            Terminare
+                                        </v-btn>
                                     </v-toolbar>
                                 </v-card>
                                 <v-stepper v-model="currentStep">
@@ -259,10 +301,10 @@
                                                             <td class="text-xs-left">{{ props.item.person_number }}</td>
                                                             <td class="text-xs-left">{{ props.item.vacant_places }}</td>
                                                             <td class="text-xs-right">
-                                                                <v-btn icon class="mx-0"  @click="addRoomToSaleDialog(props.item)" v-if="roomAlreadyAdded(props.item.id)">
+                                                                <v-btn icon class="mx-0"  @click="addRoomToSaleDialog(props.item)" v-if="!roomAlreadyAdded(props.item.id)">
                                                                     <v-icon color="teal">add</v-icon>
                                                                 </v-btn>
-                                                                <v-btn icon class="mx-0" @click="editRoomFromSaleDialog(props.item)"v-if="!roomAlreadyAdded(props.item.id)">
+                                                                <v-btn icon class="mx-0" @click="editRoomFromSaleDialog(props.item)"v-if="roomAlreadyAdded(props.item.id)">
                                                                     <v-icon color="teal">edit</v-icon>
                                                                 </v-btn>
                                                             </td>
@@ -274,9 +316,7 @@
                                                 Inapoi
                                             </v-btn>
                                             <v-spacer></v-spacer>
-                                            <v-btn class="left" color="green" large flat  light @click="addRoomToSale">
-                                                Terminare
-                                            </v-btn>
+
                                         </v-stepper-content>
                                     </v-stepper-items>
                                 </v-stepper>
@@ -343,6 +383,8 @@
       data(){
         return{
 
+          addingRoomsToSale: false,
+
           addRoomDialog: false,
           editRoomDialog: false,
 
@@ -351,6 +393,7 @@
           selectedDate: {},
           selectedLocation: {},
           selectedRoom: {},
+          selectedIndividualRoom: {},
 
           selectedRoomsForSale: [],
 
@@ -476,10 +519,44 @@
             {text: 'Persoane pe camera', value:'person_number'},
             {text: 'Locuri disponibile', value:'vacant_places'}
           ],
+          roomsInSaleHeaders: [
+            {text: 'ID', value:'id'},
+            {text: 'Data', value:'date'},
+            {text: 'Locatie', value:'location'},
+            {text: 'Tip de camera', value:'type'},
+            {text: 'Numar de persoane', value:'persons_going'},
+            {text: 'Pret pe persoana', value:'price_person'},
+            {text: 'Pret total', value:'total_price'},
+
+          ]
         }
       },
 
       methods: {
+
+        async createSale(){
+
+            this.saleModel.offer_id = this.selectedOffer.id;
+            try {
+              const { data }  = await axios.post('/api/sales/add', {
+                saleFields : this.saleModel,
+                allocatedRooms: this.selectedRoomsForSale
+              });
+
+              console.log(data);
+
+              this.$store.dispatch('responseMessage', {
+                type: 'success',
+                text: 'Vanzare adaugata'
+              });
+
+              // this.$emit('update:reindex', true);
+              this.$emit('update:dialog', false);
+            } catch (e) {
+                console.log(e);
+            }
+
+        },
 
         indexTable(){ //query locations using the search
           this.searchOffers(this.search)
@@ -498,18 +575,20 @@
         },
 
 
-
         offersStep(){
           this.currentStep = 1;
+          this.selectedDate = {};
         },
 
         datesStep(){
           this.fetchDates(this.selectedOffer.id);
           this.currentStep = 2;
+          this.selectedDate = {};
         },
 
         locationsStep(){
           this.currentStep = 3;
+          this.selectedRoom = {};
         },
 
         roomsStep(){
@@ -518,42 +597,68 @@
 
         individualRoomsStep(){
           this.currentStep = 5;
+          this.selectedIndividualRoom = {};
+        },
+
+        showStepper(){
+          this.clearRoomForSaleModel();
+          this.addingRoomsToSale = true;
+        },
+
+        closeStepper(){
+          this.clearRoomForSaleModel();
+          this.currentStep = 0;
+          this.addingRoomsToSale = false;
         },
 
         addRoomToSaleDialog(room){
           this.clearRoomForSaleModel();
+          this.selectedIndividualRoom = room;
           this.roomForSaleModel.id = room.id;
           this.roomForSaleModel.price_person = room.price_person;
           this.roomForSaleModel.person_number = room.person_number;
           this.roomForSaleModel.vacant_places = room.vacant_places;
-
           this.roomForSaleModel.options.add = true;
         },
 
+        //this function receives a room object, finds a room in selectedRoomsForSale that matches this room's id, and prepares it for edit.
+        //this function is used both from the initial rooms for sale table and from the stepper.
         editRoomFromSaleDialog(room){
           this.clearRoomForSaleModel();
-
+          room = this.selectedRoomsForSale.find(r => r.id === room.id);
           //sale room stored in selectedRoomsForSale
-          let roomInSale = this.selectedRoomsForSale.find(r => r.id = room.id);
-          console.log(JSON.parse(JSON.stringify(roomInSale)));
-
-          this.roomForSaleModel.id = roomInSale.id;
-          this.roomForSaleModel.persons_going = roomInSale.persons_going;
-
-
+          this.roomForSaleModel.id = room.id;
+          this.roomForSaleModel.persons_going = room.persons_going;
           //normal room from the dates array., used to retrieve aditional data
           this.roomForSaleModel.person_number = room.person_number;
           this.roomForSaleModel.vacant_places = room.vacant_places;
           this.roomForSaleModel.options.edit = true;
+          this.roomForSaleModel.options.editedIndex = this.selectedRoomsForSale.indexOf(room); //find room and save the index
+          console.log(this.selectedRoomsForSale.indexOf(room));
 
-          this.roomForSaleModel.options.editedIndex = this.selectedRoomsForSale.indexOf(roomInSale); //find room and save the index
         },
 
         addRoomToSale(){
             let room = {}
             room.id = this.roomForSaleModel.id;
             room.persons_going = this.roomForSaleModel.persons_going;
+            room.type = this.selectedRoom.type;
+            room.price_person = this.roomForSaleModel.price_person;
+            room.vacant_places = this.roomForSaleModel.vacant_places;
+            room.person_number = this.roomForSaleModel.person_number;
+
+            //respective date and location, assigning only the necessary data for display.
+            room.date = {};
+            room.date.id = this.selectedDate.id;
+            room.date.start_date = this.selectedDate.start_date;
+            room.date.end_date = this.selectedDate.end_date;
+
+            room.location = {};
+            room.location.id = this.selectedLocation.id;
+            room.location.name = this.selectedLocation.name;
+
             this.selectedRoomsForSale.push(room);
+            this.selectedIndividualRoom = {};
             this.clearRoomForSaleModel();
         },
 
@@ -575,12 +680,21 @@
           return moment(dateObj).format('DD-MM-YYYY');
         },
 
+        totalPrice(price,numPersons) {
+            return price * numPersons;
+        },
+
         roomAlreadyAdded(roomId){
-          return !this.selectedRoomsForSale.find(r => r.id === roomId );
+          return this.selectedRoomsForSale.find(r => r.id === roomId );
         },
         //
         findRoom(roomId){
           return this.selectedRoomsForSale.find(r => r.id = roomId);
+        },
+
+        clearSaleModel(){
+          this.$refs.saleFields.reset();
+          this.saleModel = JSON.parse(JSON.stringify(this.saleModelDefault));
         },
 
         clearRoomForSaleModel(){
@@ -588,8 +702,14 @@
           this.roomForSaleModel = JSON.parse(JSON.stringify(this.roomForSaleModelDefault));
         },
 
+        clearSelectedItems(){
+          this.dates = [];
+          this.selectedDate = []
+        },
+
         closeCreateSale(){
           this.$emit('update:dialog',false);
+          this.clearRoomForSaleModel();
         },
 
         ...mapActions({

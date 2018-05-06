@@ -700,7 +700,6 @@
             })
             await this.closeCreateOffer();
 
-
             this.$store.dispatch('responseMessage', {
               type: 'success',
               text: 'Oferta adaugata'
