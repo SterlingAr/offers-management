@@ -100,7 +100,7 @@
                                             <td class="text-xs-left">{{props.item.price_person}}</td>
                                             <td class="text-xs-left">{{ totalPrice(props.item.price_person, props.item.persons_going)}}</td>
                                             <td class="text-xs-right">
-                                                <v-btn icon class="mx-0" @click="editRoomFromSaleDialog(props.item)">
+                                                <v-btn icon class="mx-0" @click="editRoom(props.item)">
                                                     <v-icon color="teal">edit</v-icon>
                                                 </v-btn>
                                             </td>
@@ -263,9 +263,9 @@
                                                         <template slot="items" slot-scope="props">
                                                             <td  @click="selectedRoom = props.item">
                                                                 <v-radio-group
-                                                                        v-model="selectedRoom"
-                                                                        name="rowSelector">
-                                                                    <v-radio :value="props.item"/>
+                                                                        v-model = "selectedRoom"
+                                                                        name = "rowSelector">
+                                                                    <v-radio :value = "props.item"/>
                                                                 </v-radio-group>
                                                             </td>
                                                             <td class="text-xs-left">{{ props.item.id }}</td>
@@ -304,9 +304,14 @@
                                                                 <v-btn icon class="mx-0"  @click="addRoomToSaleDialog(props.item)" v-if="!roomAlreadyAdded(props.item.id)">
                                                                     <v-icon color="teal">add</v-icon>
                                                                 </v-btn>
-                                                                <v-btn icon class="mx-0" @click="editRoomFromSaleDialog(props.item)"v-if="roomAlreadyAdded(props.item.id)">
-                                                                    <v-icon color="teal">edit</v-icon>
-                                                                </v-btn>
+                                                                <div v-if="roomAlreadyAdded(props.item.id)">
+                                                                    <v-btn icon class="mx-0" @click="editRoomFromStepper(props.item)" >
+                                                                        <v-icon color="teal">edit</v-icon>
+                                                                    </v-btn>
+                                                                    <v-btn icon class="mx-0">
+                                                                        <v-icon color="pink">delete</v-icon>
+                                                                    </v-btn>
+                                                                </div>
                                                             </td>
                                                         </template>
                                                     </v-data-table>
@@ -351,6 +356,26 @@
                                     required
                             ></v-text-field>
                         </v-flex>
+                        <v-flex xs12>
+                            <v-select
+                                    v-model="roomForSaleModel.persons_names"
+                                    label="Numele persoanelor care merg"
+                                    :rules="validationRules.personsNames"
+                                    chips
+                                    tags
+                                    clearable
+                            >
+                                <template slot="selection" slot-scope="data">
+                                    <v-chip
+                                            :selected="data.selected"
+                                            close
+                                            @input="removePerson(data.item)"
+                                    >
+                                        <strong>{{ data.item }}</strong>&nbsp;
+                                    </v-chip>
+                                </template>
+                            </v-select>
+                        </v-flex>
                     </v-form>
                 </v-card-text>
                 <v-card-actions>
@@ -358,6 +383,8 @@
                     <v-btn color="primary" flat @click="clearRoomForSaleModel">Close</v-btn>
                     <v-btn  :disabled="!roomForSaleModel.options.valid" color="blue darken-1" flat @click="addRoomToSale" v-if="roomForSaleModel.options.add">Salveaza</v-btn>
                     <v-btn  :disabled="!roomForSaleModel.options.valid" color="blue darken-1" flat @click="updateRoomFromSale" v-else>Actualizeaza</v-btn>
+
+
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -428,6 +455,7 @@
             id: '',
             price_person : '',
             person_number: '',
+            persons_names: [],
             vacant_places: '',
             persons_going: '',
             options: {
@@ -459,6 +487,7 @@
             id: '',
             price_person : '',
             person_number: '',
+            persons_names: [],
             vacant_places: '',
             persons_going: '',
             options: {
@@ -486,9 +515,12 @@
               v => !!v || 'Numarul de persoane pe camera este obligatoriu',
               v => /^\d+$/.test(v) || 'Este necesara o valoare numerica',
               v => v <= this.roomForSaleModel.vacant_places || 'Nu puteti aloca mai multe persoana decate locuri sunt disponibile',
-              v => v <= this.roomForSaleModel.person_number || 'Nu puteti specifica mai multe locuri disponibile decate persoane incap in camera'
+              v => v <= this.roomForSaleModel.person_number || 'Nu puteti specifica mai multe locuri disponibile decate persoane incap in camera',
 
             ],
+            personsNames: [
+              v => this.roomForSaleModel.persons_names.length <= this.roomForSaleModel.persons_going || 'Nu puteti adauga mai multe nume decate locuri sunt disponibile'
+            ]
           },
           offersHeaders: [
             { text: '', value: ''},
@@ -621,14 +653,19 @@
           this.roomForSaleModel.options.add = true;
         },
 
-        //this function receives a room object, finds a room in selectedRoomsForSale that matches this room's id, and prepares it for edit.
-        //this function is used both from the initial rooms for sale table and from the stepper.
-        editRoomFromSaleDialog(room){
+        // the room objects in the stepper (num 5)  table are not the same as the ones in selectedRoomForSale use the room's id to
+        // find a room in selectedRoomsForSale that matches this room's id
+        editRoomFromStepper(room){
+          let selectedRoom = this.selectedRoomsForSale.find(r => r.id === room.id);
+          this.editRoom( selectedRoom);
+        },
+
+        editRoom(room){
           this.clearRoomForSaleModel();
-          room = this.selectedRoomsForSale.find(r => r.id === room.id);
           //sale room stored in selectedRoomsForSale
           this.roomForSaleModel.id = room.id;
           this.roomForSaleModel.persons_going = room.persons_going;
+          this.roomForSaleModel.persons_names = room.persons_names;
           //normal room from the dates array., used to retrieve aditional data
           this.roomForSaleModel.person_number = room.person_number;
           this.roomForSaleModel.vacant_places = room.vacant_places;
@@ -646,6 +683,7 @@
             room.price_person = this.roomForSaleModel.price_person;
             room.vacant_places = this.roomForSaleModel.vacant_places;
             room.person_number = this.roomForSaleModel.person_number;
+            room.persons_names = this.roomForSaleModel.persons_names;
 
             //respective date and location, assigning only the necessary data for display.
             room.date = {};
@@ -665,7 +703,14 @@
         updateRoomFromSale(){
             let room = this.selectedRoomsForSale[this.roomForSaleModel.options.editedIndex];
             room.persons_going = this.roomForSaleModel.persons_going;
+            room.persons_names = this.roomForSaleModel.persons_names;
             this.clearRoomForSaleModel();
+        },
+
+        //remove person from roomForSaleModel.persons_names
+        removePerson(person){
+          this.roomForSaleModel.persons_names.splice(this.roomForSaleModel.persons_names.indexOf(person), 1)
+          this.roomForSaleModel.persons_names = JSON.parse(JSON.stringify([...this.roomForSaleModel.persons_names]));
         },
         
         //FORMAT, HELPERS AND OTHER METHODS.

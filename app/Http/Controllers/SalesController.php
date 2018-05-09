@@ -45,10 +45,11 @@ class SalesController extends Controller
 //            if($request->has('allocatedRooms')){
 //                $allocatedRooms = $request->input('allocatedRooms');
 //            }
-
             $sale->save();
             $offer = Offer::where('id', $saleFields['offer_id'])->first();
             $sale->offer()->associate($offer);
+            $sale->save();
+
         } else {
             return response()->json([
                 'errors' => $validator->errors()->all()

@@ -20,7 +20,7 @@ class Offer extends Model
     {
         return $this->hasMany('App\OfferDate');
     }
-//
+
 //    public function sale(){
 //        return $this->hasMany('App\Sale');
 //    }
