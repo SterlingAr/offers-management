@@ -77,7 +77,18 @@
                                 <v-card light>
                                     <v-toolbar color="indigo" dark>
                                         <v-icon>event</v-icon>
-                                        <v-toolbar-title>Camere adaugate la vanzare</v-toolbar-title>
+                                        <v-toolbar-title>
+                                            Camere adaugate la vanzare
+                                            <span v-if="Object.keys(this.selectedOffer).length !== 0">
+                                                pentru oferta {{selectedOffer.title}}
+                                            </span>
+                                        </v-toolbar-title>
+                                        <v-btn  color="blue" dark  @click="selectOffer" v-if="Object.keys(this.selectedOffer).length === 0">
+                                            Alege oferta.
+                                        </v-btn>
+                                        <v-btn color="red lighten-2" dark @click="changeOffer" v-else>
+                                            Schimbati oferta
+                                        </v-btn>
                                         <v-spacer></v-spacer>
                                         <v-btn icon dark right @click="showStepper">
                                             <v-icon>add</v-icon>
@@ -113,7 +124,7 @@
                                 <v-card light>
                                     <v-toolbar color="indigo" dark>
                                         <v-icon>event</v-icon>
-                                        <v-toolbar-title>Selectioneaza oferta, data si amenajarile respective</v-toolbar-title>
+                                        <v-toolbar-title>Selectioneaza data, locatia si amenajarile respective</v-toolbar-title>
                                         <v-spacer></v-spacer>
                                         <v-btn class="left" color="white" large flat  light @click="closeStepper">
                                             Terminare
@@ -122,66 +133,19 @@
                                 </v-card>
                                 <v-stepper v-model="currentStep">
                                     <v-stepper-header>
-                                        <v-stepper-step step="1" :complete="currentStep > 1">Alege oferta</v-stepper-step>
+                                        <v-stepper-step step="1" :complete="currentStep > 1">Alege o data</v-stepper-step>
                                         <v-divider></v-divider>
-                                        <v-stepper-step step="2" :complete="currentStep > 2">Alege o data</v-stepper-step>
+                                        <v-stepper-step step="2" :complete="currentStep > 2">Alege o locatie</v-stepper-step>
                                         <v-divider></v-divider>
-                                        <v-stepper-step step="3" :complete="currentStep > 3">Alege o locatie</v-stepper-step>
+                                        <v-stepper-step step="3" :complete="currentStep > 3"> Alege tip de camera</v-stepper-step>
                                         <v-divider></v-divider>
-                                        <v-stepper-step step="4" :complete="currentStep > 4"> Alege tip de camera</v-stepper-step>
-                                        <v-divider></v-divider>
-                                        <v-stepper-step step="5">Camere/locuri pentru vanzare</v-stepper-step>
+                                        <v-stepper-step step="4">Camere/locuri pentru vanzare</v-stepper-step>
                                     </v-stepper-header>
                                     <v-stepper-items>
-                                        <!-- Offers -->
-                                        <v-stepper-content step="1">
-                                            <v-flex md12 xs12 lg12 >
-                                                <!--<v-card light>-->
-                                                <v-card-text>
-                                                    <v-card-title>
-                                                        <v-spacer></v-spacer>
-                                                        <v-text-field
-                                                                append-icon="search"
-                                                                label="Cauta oferta"
-                                                                single-line
-                                                                hide-details
-                                                                @input="indexTable()"
-                                                                v-model.lazy="search"
-                                                        ></v-text-field>
-                                                    </v-card-title>
-                                                    <v-data-table
-                                                            :headers="offersHeaders"
-                                                            :items="offers"
-                                                            no-data-text="Nu exista nici o oferta disponibila"
-
-                                                    >
-                                                        <template slot="items" slot-scope="props">
-                                                            <td  @click="selectedOffer = props.item">
-                                                                <v-radio-group
-                                                                        v-model="selectedOffer"
-                                                                        name="rowSelector">
-                                                                    <v-radio :value="props.item"/>
-                                                                </v-radio-group>
-                                                            </td>
-                                                            <td>{{ props.item.id }}</td>
-                                                            <td class="text-xs-left">{{ props.item.title }}</td>
-                                                            <td class="text-xs-left">{{ props.item.description }}</td>
-                                                        </template>
-                                                        <v-alert slot="no-results" :value="true" color="error" icon="warning">
-                                                            Cautarea pentru "{{ search }}" nu are rezultate.
-                                                        </v-alert>
-                                                    </v-data-table>
-                                                </v-card-text>
-                                            </v-flex>
-                                            <v-btn :disabled="Object.keys(this.selectedOffer).length === 0" class="left" color="green" large flat @click="datesStep">
-                                                Inainte
-                                            </v-btn>
-                                            <v-spacer></v-spacer>
-                                        </v-stepper-content>
                                         <!-- Dates -->
-                                        <v-stepper-content step="2" transition="fade-transition">
+                                        <v-stepper-content step="1" transition="fade-transition">
                                             <v-flex md12 xs12>
-                                                <p class="headline">Date pentru oferta {{selectedOffer.title}}</p>
+                                                <p class="headline">Date pentru oferta {{ selectedOffer.title}}</p>
                                                 <v-card-text>
                                                     <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
                                                     <v-data-table
@@ -205,7 +169,7 @@
                                                     </v-data-table>
                                                 </v-card-text>
                                             </v-flex>
-                                            <v-btn  class="left" color="red" large flat  light right @click="offersStep">
+                                            <v-btn  class="left" color="red" large flat  light right @click="closeStepper">
                                                 Inapoi
                                             </v-btn>
                                             <v-spacer></v-spacer>
@@ -214,7 +178,7 @@
                                             </v-btn>
                                         </v-stepper-content>
                                         <!-- Locations -->
-                                        <v-stepper-content step="3">
+                                        <v-stepper-content step="2">
                                             <!--<v-flex md6 xs12 v-if="selectedDate.locations.length > 0">-->
                                             <v-flex md12 xs12 lg12>
                                                     <p class="headline">Locatii pentru Data {{dateConcat(selectedDate)}}</p>
@@ -249,7 +213,7 @@
                                             </v-btn>
                                         </v-stepper-content>
                                         <!-- Rooms -->
-                                        <v-stepper-content step="4">
+                                        <v-stepper-content step="3">
                                             <v-flex md12 xs12 lg12>
                                                 <p class="headline">Tipuri de camere disponibile pentru locatia {{selectedLocation.name}}</p>
                                                 <v-card-text>
@@ -284,7 +248,7 @@
 
                                         </v-stepper-content>
                                         <!-- individual rooms -->
-                                        <v-stepper-content step="5">
+                                        <v-stepper-content step="4">
                                             <v-flex md12 xs12 lg12>
                                                 <p class="headline">Camere individuale pentru tipul de camera {{selectedRoom.type}}</p>
                                                 <v-card-text>
@@ -330,6 +294,65 @@
                     </v-container>
                 </v-card-text>
             </v-card>
+        </v-dialog>
+        <!-- Select offer -->
+        <v-dialog
+            max-width="700px"
+            v-model="offerModel.options.changingOffer || offerModel.options.selectingOffer "
+
+            persistent
+        >
+            <v-card>
+                <v-card-title>
+                    <span class="headline" >
+                        {{offerDialogTitle}}
+                    </span>
+                </v-card-title>
+                <v-card-text>
+                    <v-flex md12 xs12 lg12 >
+                        <!--<v-card light>-->
+                        <v-card-text>
+                                <v-text-field
+                                        append-icon="search"
+                                        label="Cauta oferta"
+                                        single-line
+                                        hide-details
+                                        @input="indexTable()"
+                                        v-model.lazy="search"
+                                ></v-text-field>
+                            <v-data-table
+                                    :headers="offersHeaders"
+                                    :items="offers"
+                                    no-data-text="Nu exista nici o oferta disponibila"
+
+                            >
+                                <template slot="items" slot-scope="props">
+                                    <td  @click="temporalOffer = props.item">
+                                        <v-radio-group
+                                                v-model="temporalOffer"
+                                                name="rowSelector">
+                                            <v-radio :value="props.item"/>
+                                        </v-radio-group>
+                                    </td>
+                                    <td>{{ props.item.id }}</td>
+                                    <td class="text-xs-left">{{ props.item.title }}</td>
+                                    <td class="text-xs-left">{{ props.item.description }}</td>
+                                </template>
+                                <v-alert slot="no-results" :value="true" color="error" icon="warning">
+                                    Cautarea pentru "{{ search }}" nu are rezultate.
+                                </v-alert>
+                            </v-data-table>
+                        </v-card-text>
+                    </v-flex>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat @click="closeOfferDialog">Close</v-btn>
+                    <v-btn color="blue darken-1" @click="updateOffer" v-if="offerModel.options.selectingOffer">Alege</v-btn>
+                    <v-btn color="blue darken-1" @click="updateOffer" v-else>Actualizeaza</v-btn>
+                </v-card-actions>
+            </v-card>
+
         </v-dialog>
         <!-- Add room to sale dialog -->
         <v-dialog
@@ -383,8 +406,6 @@
                     <v-btn color="primary" flat @click="clearRoomForSaleModel">Close</v-btn>
                     <v-btn  :disabled="!roomForSaleModel.options.valid" color="blue darken-1" flat @click="addRoomToSale" v-if="roomForSaleModel.options.add">Salveaza</v-btn>
                     <v-btn  :disabled="!roomForSaleModel.options.valid" color="blue darken-1" flat @click="updateRoomFromSale" v-else>Actualizeaza</v-btn>
-
-
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -411,9 +432,12 @@
         return{
 
           addingRoomsToSale: false,
-
           addRoomDialog: false,
           editRoomDialog: false,
+
+
+
+          temporalOffer: {},
 
           //at the end, should choose between object or just id.
           selectedOffer: {},
@@ -434,6 +458,19 @@
           selectingRooms: false,
           selectingIndividualRooms:false,
           currentStep: 0,
+
+          offerModelDefault: {
+            options:{
+              selectingOffer: false,
+              changingOffer: false,
+            }
+          },
+          offerModel: {
+            options:{
+              selectingOffer: false,
+              changingOffer: false,
+            }
+          },
 
           saleModelDefault: {
             first_name: "",
@@ -606,41 +643,54 @@
           }
         },
 
+        selectOffer(){
+            this.offerModel.options.selectingOffer = true;
+        },
 
-        offersStep(){
-          this.currentStep = 1;
-          this.selectedDate = {};
+        changeOffer(){
+          this.offerModel.options.changingOffer = true;
+        },
+
+        closeOfferDialog(){
+          this.clearOfferModel();
         },
 
         datesStep(){
           this.fetchDates(this.selectedOffer.id);
-          this.currentStep = 2;
+          this.currentStep = 1;
           this.selectedDate = {};
         },
 
         locationsStep(){
-          this.currentStep = 3;
+          this.currentStep = 2;
           this.selectedRoom = {};
         },
 
         roomsStep(){
-          this.currentStep = 4;
+          this.currentStep = 3;
         },
 
         individualRoomsStep(){
-          this.currentStep = 5;
+          this.currentStep = 4;
           this.selectedIndividualRoom = {};
         },
 
         showStepper(){
           this.clearRoomForSaleModel();
           this.addingRoomsToSale = true;
+          this.datesStep();
         },
 
         closeStepper(){
           this.clearRoomForSaleModel();
           this.currentStep = 0;
           this.addingRoomsToSale = false;
+        },
+
+
+        updateOffer(){
+            this.selectedOffer = this.temporalOffer;
+            this.clearOfferModel();
         },
 
         addRoomToSaleDialog(room){
@@ -737,6 +787,10 @@
           return this.selectedRoomsForSale.find(r => r.id = roomId);
         },
 
+        clearOfferModel(){
+          this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+
+        },
         clearSaleModel(){
           this.$refs.saleFields.reset();
           this.saleModel = JSON.parse(JSON.stringify(this.saleModelDefault));
@@ -765,6 +819,9 @@
       computed: {
         roomDialogTitle(){
           return this.roomForSaleModel.options.edit ? 'Editeaza camera' : 'Adauga camera la vanzare';
+        },
+        offerDialogTitle(){
+          return this.selectingOffer ? 'Selectioneaza o oferta pentru vanzare' : 'Schimba o oferta pentru vanzare';
         },
         ...mapGetters({
           offers: 'GET_OFFERS'
