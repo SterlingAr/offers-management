@@ -25,14 +25,18 @@
             >
                 <template slot="items" slot-scope="props">
 
-                    <td>{{ props.item.id }}</td>
-                    <td class="text-xs-left">{{ props.item.title }}</td>
-                    <td class="text-xs-left">{{ props.item.description }}</td>
+                    <td class="text-xs-left">{{ props.item.id }}</td>
+                    <td class="text-xs-left">{{clientName(props.item.first_name, props.item.last_name)}}</td>
+                    <td class="text-xs-left">{{ props.item.email }}</td>
+                    <td class="text-xs-left">{{ props.item.phone }}</td>
+                    <td class="text-xs-left">{{ props.item.total_person_number}}</td>
+                    <td class="text-xs-left">{{ props.item.payment_status}}</td>
+                    <td class="text-xs-left">{{ props.item.total_amount}}</td>
                     <td class="justify-center layout px-0">
-                        <v-btn icon class="mx-0" @click="editOffer(props.item)">
+                        <v-btn icon class="mx-0" @click="editSale(props.item)">
                             <v-icon color="teal">edit</v-icon>
                         </v-btn>
-                        <v-btn icon class="mx-0" @click="deleteOffer(props.item)">
+                        <v-btn icon class="mx-0" @click="deleteSaleDialog(props.item)">
                             <v-icon color="pink">delete</v-icon>
                         </v-btn>
                     </td>
@@ -43,7 +47,19 @@
             </v-data-table>
         </v-card>
 
-        <new-sale :dialog.sync="dialog" :initial-offers="initialOffers"></new-sale>
+        <!-- Confirm delete sale dialog -->
+        <v-dialog v-model="deletingSale" max-width="290">
+            <v-card>
+                <v-card-title class="headline">Stergere camera?</v-card-title>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat="flat" @click="deletingSale = false">Inchide</v-btn>
+                    <v-btn flat large color="error" @click="deleteSale">Da, sterge</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
+        <new-sale :reindex.sync="reindex" :dialog.sync="dialog" :initial-offers="initialOffers"></new-sale>
     </div>
 </template>
 
@@ -59,23 +75,28 @@
       return { title: "Vanzari" }
     },
     mounted() {
-      console.log('Component mounted.');
+        this.indexTable();
     },
 
     data(){
       return {
         busy: false,
         dialog:false,
+        deletingSale: false,
+        saleForDelete: {},
         search: '',
-        delay:4000,
+        reindex : false,
+        delay: 4000,
         initialOffers: [],
 
         salesHeaders: [
           {text: 'ID', value: 'id'},
-          {text: 'Oferta', value: 'offer_name'},
           {text: 'Client', value: 'client_name'},
           {text: 'Email', value: 'email'},
-          {text: 'Phone', value: 'phone'}
+          {text: 'Telefon', value: 'phone'},
+          {text: 'Total persoane', value:'total_person_number'},
+          {text: 'Status plata', value:'payment_status'},
+          {text: 'Suma totala', value:'total_amount'},
         ],
 
         sales: []
@@ -100,9 +121,30 @@
         }
       },
 
+      async deleteSale(){
+        this.busy = true;
+        let index = this.sales.indexOf(this.saleForDelete);
+        try {
+          const {data} = await axios.delete('/api/sales/delete/'+ this.saleForDelete.id);
 
-      newOffer() {
-        this.dialogNew = true;
+          this.sales.splice(index,1);
+          this.deletingSale = false;
+
+        } catch(e) {
+          console.log(e);
+        }
+        this.busy = false;
+
+      },
+
+      deleteSaleDialog(sale){
+        this.saleForDelete = sale;
+        this.deletingSale = true;
+
+      },
+
+      editSale(sale){
+
       },
 
 
@@ -110,45 +152,22 @@
         this.dialog=true;
       },
 
-      // async getOfferDetails(offer_id){
-      //
-      //   this.selectedOfferDates=[];
-      //   this.selectedOfferLocations=[];
-      //   this.busy=true;
-      //
-      //   try {
-      //     const { data } = await axios.get('/api/offers/'+offer_id)
-      //
-      //     this.selectedOfferDetails=data.offer
-      //     this.selectedOfferDates=data.offer.dates
-      //     this.busy=false;
-      //
-      //   } catch (e) {
-      //     this.busy=false;
-      //   }
-      // },
-      //
-      // async getAvailableRooms(selectedLocation){
-      //   this.busy=true;
-      //
-      //   try {
-      //     const { data } = await axios.get('/api/available-rooms',{params:{
-      //         offer_id:this.sale.offer_id,
-      //         location_id:selectedLocation.id,
-      //         offer_date_id:this.sale.offer_date_id.id,
-      //       }})
-      //     this.busy=false;
-      //
-      //   } catch (e) {
-      //     console.log(e.message);
-      //     this.busy=false;
-      //   }
-      // },
-
+      clientName(firstName,lastName){
+        return firstName + ' ' + lastName;
+      }
 
     },
 
+    watch : {
+      reindex: function (val){
+        val && this.indexTable();
+      }
+    },
+
+
     computed:{
+
+
       ...mapState({
         offers: state => state.offers.offers //?
       })

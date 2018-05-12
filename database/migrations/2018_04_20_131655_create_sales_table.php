@@ -23,7 +23,7 @@ class CreateSalesTable extends Migration
             $table->integer('total_person_number')->nullable();
             $table->enum('payment_status', ['paid', 'notpaid'])->default("notpaid");
             $table->string('coupon_code')->nullable();
-            $table->decimal('total_amount',4,2)->nullable();
+            $table->decimal('total_amount',6,2)->nullable();
 
             $table->timestamps();
 

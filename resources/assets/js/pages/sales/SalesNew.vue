@@ -15,6 +15,7 @@
                 transition="dialog-bottom-transition"
                 scrollable
         >
+            <progress-bar :show="busy"></progress-bar>
             <v-card tile>
                 <v-toolbar card dark color="primary">
                     <v-btn icon @click.native="closeCreateSale" dark>
@@ -78,9 +79,11 @@
                                     <v-toolbar color="indigo" dark>
                                         <v-icon>event</v-icon>
                                         <v-toolbar-title>
-                                            Camere adaugate la vanzare
-                                            <span v-if="Object.keys(this.selectedOffer).length !== 0">
-                                                pentru oferta {{selectedOffer.title}}
+                                            <span v-if="Object.keys(this.selectedOffer).length === 0">
+                                                Nu ati ales nici o oferta
+                                            </span>
+                                            <span v-else>
+                                                Camere pentru oferta {{selectedOffer.title}}
                                             </span>
                                         </v-toolbar-title>
                                         <v-btn  color="blue" dark  @click="selectOffer" v-if="Object.keys(this.selectedOffer).length === 0">
@@ -90,8 +93,8 @@
                                             Schimbati oferta
                                         </v-btn>
                                         <v-spacer></v-spacer>
-                                        <v-btn icon dark right @click="showStepper">
-                                            <v-icon>add</v-icon>
+                                        <v-btn color="blue" right @click="showStepper" v-if="Object.keys(this.selectedOffer).length">
+                                           Adauga camera
                                         </v-btn>
                                     </v-toolbar>
                                 </v-card>
@@ -99,20 +102,28 @@
                                     <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
                                     <v-data-table
                                             :headers="roomsInSaleHeaders"
-                                            :items="selectedRoomsForSale"
+                                            :items="allocatedRooms"
                                             class="elevation-1"
                                     >
                                         <template slot="items" slot-scope="props">
-                                            <td class="text-xs-left">{{ props.item.id }}</td>
-                                            <td class="text-xs-left">{{dateConcat(props.item.date)}}</td>
-                                            <td class="text-xs-left">{{props.item.location.name}}</td>
-                                            <td class="text-xs-left">{{props.item.type}}</td>
-                                            <td class="text-xs-left">{{props.item.persons_going}}</td>
-                                            <td class="text-xs-left">{{props.item.price_person}}</td>
-                                            <td class="text-xs-left">{{ totalPrice(props.item.price_person, props.item.persons_going)}}</td>
-                                            <td class="text-xs-right">
+                                            <td class="text-xs-center">{{ props.item.offer_dates_location_room_id }}</td>
+                                            <td class="text-xs-center">{{dateConcat(props.item.date)}}</td>
+                                            <td class="text-xs-center">{{props.item.location.name}}</td>
+                                            <td class="text-xs-center">{{props.item.type}}</td>
+                                            <td class="text-xs-center">{{props.item.persons_going}}</td>
+                                            <td class="text-xs-center">
+                                                <span v-for="name in props.item.persons_names">
+                                                    {{ name }},
+                                                </span>
+                                            </td>
+                                            <td class="text-xs-center">{{props.item.price_person}}</td>
+                                            <td class="text-xs-center">{{ totalPrice(props.item.price_person, props.item.persons_going)}}</td>
+                                            <td class="text-xs-center">
                                                 <v-btn icon class="mx-0" @click="editRoom(props.item)">
                                                     <v-icon color="teal">edit</v-icon>
+                                                </v-btn>
+                                                <v-btn icon class="mx-0" @click="removeRoomDialog(props.item)">
+                                                    <v-icon color="pink">delete</v-icon>
                                                 </v-btn>
                                             </td>
                                         </template>
@@ -250,7 +261,7 @@
                                         <!-- individual rooms -->
                                         <v-stepper-content step="4">
                                             <v-flex md12 xs12 lg12>
-                                                <p class="headline">Camere individuale pentru tipul de camera {{selectedRoom.type}}</p>
+                                                <p class="headline">Camere individuale de tip {{selectedRoom.type}} pentru locatia {{selectedLocation.name}} in data de {{dateConcat(selectedDate)}}</p>
                                                 <v-card-text>
                                                     <!--<v-progress-linear slot="progress" color="blue" indeterminate></v-progress-linear>-->
                                                     <v-data-table
@@ -272,7 +283,7 @@
                                                                     <v-btn icon class="mx-0" @click="editRoomFromStepper(props.item)" >
                                                                         <v-icon color="teal">edit</v-icon>
                                                                     </v-btn>
-                                                                    <v-btn icon class="mx-0">
+                                                                    <v-btn icon class="mx-0" @click="removeRoomDialog(props.item)">
                                                                         <v-icon color="pink">delete</v-icon>
                                                                     </v-btn>
                                                                 </div>
@@ -308,6 +319,7 @@
                         {{offerDialogTitle}}
                     </span>
                 </v-card-title>
+
                 <v-card-text>
                     <v-flex md12 xs12 lg12 >
                         <!--<v-card light>-->
@@ -320,6 +332,9 @@
                                         @input="indexTable()"
                                         v-model.lazy="search"
                                 ></v-text-field>
+                            <v-alert class="left" :value="true" v-if="offerModel.options.changingOffer" type="error">
+                                Daca schimbati oferta, toate camerele adaugate vor fi sterse din vanzare.
+                            </v-alert>
                             <v-data-table
                                     :headers="offersHeaders"
                                     :items="offers"
@@ -387,6 +402,7 @@
                                     chips
                                     tags
                                     clearable
+                                    required
                             >
                                 <template slot="selection" slot-scope="data">
                                     <v-chip
@@ -409,6 +425,17 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <!-- Confirm remove room from sale dialog -->
+        <v-dialog v-model="roomForSaleModel.options.delete" max-width="290">
+            <v-card>
+                <v-card-title class="headline">Stergere camera?</v-card-title>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat="flat" @click="clearRoomForSaleModel">Inchide</v-btn>
+                    <v-btn flat large color="error" @click="removeRoom">Da, sterge</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -425,7 +452,7 @@
       },
 
       mounted(){
-        this.$store.dispatch('getOffers')
+
       },
 
       data(){
@@ -434,7 +461,6 @@
           addingRoomsToSale: false,
           addRoomDialog: false,
           editRoomDialog: false,
-
 
 
           temporalOffer: {},
@@ -446,7 +472,7 @@
           selectedRoom: {},
           selectedIndividualRoom: {},
 
-          selectedRoomsForSale: [],
+          allocatedRooms: [],
 
           // offers:[],
           dates:[],
@@ -489,7 +515,7 @@
             }
           },
           roomForSaleModelDefault: {
-            id: '',
+            offer_dates_location_room_id: '',
             price_person : '',
             person_number: '',
             persons_names: [],
@@ -499,6 +525,7 @@
               valid: false,
               add: false,
               edit: false,
+              delete:false,
               editedIndex: '',
               deletedIndex : ''
             }
@@ -510,9 +537,7 @@
             email: "",
             phone: "",
             offer_id: "",
-            location_id: "",
-            offer_date_id: "",
-            total_person_number: 0,
+            total_person_number: this.totalPersonNumber,
             payment_status: "notpaid",
             coupon_code: "",
             total_amount:0.00,
@@ -521,7 +546,7 @@
             }
           },
           roomForSaleModel: {
-            id: '',
+            offer_dates_location_room_id: '',
             price_person : '',
             person_number: '',
             persons_names: [],
@@ -531,6 +556,7 @@
               valid: false,
               add: false,
               edit: false,
+              delete:false,
               editedIndex: 0,
               deletedIndex : 0
             }
@@ -556,6 +582,7 @@
 
             ],
             personsNames: [
+              v => !!v || 'Numele persoanelor este obligatoriu',
               v => this.roomForSaleModel.persons_names.length <= this.roomForSaleModel.persons_going || 'Nu puteti adauga mai multe nume decate locuri sunt disponibile'
             ]
           },
@@ -594,8 +621,10 @@
             {text: 'Locatie', value:'location'},
             {text: 'Tip de camera', value:'type'},
             {text: 'Numar de persoane', value:'persons_going'},
+            {text: 'Nume persoane', value:'persons_names'},
             {text: 'Pret pe persoana', value:'price_person'},
             {text: 'Pret total', value:'total_price'},
+            {text: '', value:''},
 
           ]
         }
@@ -605,26 +634,40 @@
 
         async createSale(){
 
-            this.saleModel.offer_id = this.selectedOffer.id;
+            this.busy = true;
             try {
               const { data }  = await axios.post('/api/sales/add', {
                 saleFields : this.saleModel,
-                allocatedRooms: this.selectedRoomsForSale
+                allocatedRooms: this.allocatedRooms
               });
 
+
               console.log(data);
+
+
+              this.$emit('update:dialog',false);
+              this.$emit('update:reindex', true);
+              await this.clearAllData();
+
 
               this.$store.dispatch('responseMessage', {
                 type: 'success',
                 text: 'Vanzare adaugata'
               });
 
-              // this.$emit('update:reindex', true);
-              this.$emit('update:dialog', false);
-            } catch (e) {
-                console.log(e);
-            }
 
+
+              // this.$emit('update:reindex', true);
+            } catch (e) {
+              console.log(e);
+              for(let error of e.response.data.errors) {
+                this.$store.dispatch('responseMessage', {
+                  type: 'error',
+                  text: error
+                })
+              }
+            }
+          this.busy = false;
         },
 
         indexTable(){ //query locations using the search
@@ -644,10 +687,12 @@
         },
 
         selectOffer(){
-            this.offerModel.options.selectingOffer = true;
+          this.$store.dispatch('getOffers');
+          this.offerModel.options.selectingOffer = true;
         },
 
         changeOffer(){
+          this.$store.dispatch('getOffers');
           this.offerModel.options.changingOffer = true;
         },
 
@@ -689,45 +734,64 @@
 
 
         updateOffer(){
-            this.selectedOffer = this.temporalOffer;
-            this.clearOfferModel();
+
+          if(this.offerModel.options.changingOffer){
+            this.allocatedRooms = [];
+          }
+          this.selectedOffer = this.temporalOffer;
+          this.saleModel.offer_id = this.selectedOffer.id;
+          this.clearOfferModel();
         },
+
+
 
         addRoomToSaleDialog(room){
           this.clearRoomForSaleModel();
           this.selectedIndividualRoom = room;
-          this.roomForSaleModel.id = room.id;
+          this.roomForSaleModel. offer_dates_location_room_id = room.id;
           this.roomForSaleModel.price_person = room.price_person;
           this.roomForSaleModel.person_number = room.person_number;
           this.roomForSaleModel.vacant_places = room.vacant_places;
           this.roomForSaleModel.options.add = true;
         },
 
+        removeRoomDialog(room){
+          let r = this.allocatedRooms.find(r => r.offer_dates_location_room_id === room.id);
+          this.roomForSaleModel.options.deletedIndex = this.allocatedRooms.indexOf(r);
+          this.roomForSaleModel.options.delete = true;
+        },
+
+        removeRoom(){
+          let index = this.roomForSaleModel.options.deletedIndex;
+          this.allocatedRooms.splice(index,1);
+          this.clearRoomForSaleModel();
+        },
+
         // the room objects in the stepper (num 5)  table are not the same as the ones in selectedRoomForSale use the room's id to
-        // find a room in selectedRoomsForSale that matches this room's id
+        // find a room in allocatedRooms that matches this room's id
         editRoomFromStepper(room){
-          let selectedRoom = this.selectedRoomsForSale.find(r => r.id === room.id);
-          this.editRoom( selectedRoom);
+          let r = this.allocatedRooms.find(r => r.offer_dates_location_room_id === room.id);
+          this.editRoom(r);
         },
 
         editRoom(room){
           this.clearRoomForSaleModel();
-          //sale room stored in selectedRoomsForSale
-          this.roomForSaleModel.id = room.id;
+          //sale room stored in allocatedRooms
+          this.roomForSaleModel. offer_dates_location_room_id = room.id;
           this.roomForSaleModel.persons_going = room.persons_going;
-          this.roomForSaleModel.persons_names = room.persons_names;
+          this.roomForSaleModel.persons_names = JSON.parse(JSON.stringify(room.persons_names));
           //normal room from the dates array., used to retrieve aditional data
           this.roomForSaleModel.person_number = room.person_number;
           this.roomForSaleModel.vacant_places = room.vacant_places;
           this.roomForSaleModel.options.edit = true;
-          this.roomForSaleModel.options.editedIndex = this.selectedRoomsForSale.indexOf(room); //find room and save the index
-          console.log(this.selectedRoomsForSale.indexOf(room));
+          this.roomForSaleModel.options.editedIndex = this.allocatedRooms.indexOf(room); //find room and save the index
+          console.log(this.allocatedRooms.indexOf(room));
 
         },
 
         addRoomToSale(){
             let room = {}
-            room.id = this.roomForSaleModel.id;
+            room.offer_dates_location_room_id = this.roomForSaleModel.offer_dates_location_room_id;
             room.persons_going = this.roomForSaleModel.persons_going;
             room.type = this.selectedRoom.type;
             room.price_person = this.roomForSaleModel.price_person;
@@ -745,13 +809,13 @@
             room.location.id = this.selectedLocation.id;
             room.location.name = this.selectedLocation.name;
 
-            this.selectedRoomsForSale.push(room);
+            this.allocatedRooms.push(room);
             this.selectedIndividualRoom = {};
             this.clearRoomForSaleModel();
         },
 
         updateRoomFromSale(){
-            let room = this.selectedRoomsForSale[this.roomForSaleModel.options.editedIndex];
+            let room = this.allocatedRooms[this.roomForSaleModel.options.editedIndex];
             room.persons_going = this.roomForSaleModel.persons_going;
             room.persons_names = this.roomForSaleModel.persons_names;
             this.clearRoomForSaleModel();
@@ -764,6 +828,11 @@
         },
         
         //FORMAT, HELPERS AND OTHER METHODS.
+
+        getTotalPersonNumber(){
+
+        },
+
         dateConcat(date){
           let start =  this.friendlyDateFormat(new Date(date.start_date));
           let end = this.friendlyDateFormat(new Date(date.end_date));
@@ -780,16 +849,15 @@
         },
 
         roomAlreadyAdded(roomId){
-          return this.selectedRoomsForSale.find(r => r.id === roomId );
+          return this.allocatedRooms.find(r => r.offer_dates_location_room_id === roomId );
         },
         //
         findRoom(roomId){
-          return this.selectedRoomsForSale.find(r => r.id = roomId);
+          return this.allocatedRooms.find(r => r.offer_dates_location_room_id = roomId);
         },
 
         clearOfferModel(){
           this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
-
         },
         clearSaleModel(){
           this.$refs.saleFields.reset();
@@ -801,14 +869,23 @@
           this.roomForSaleModel = JSON.parse(JSON.stringify(this.roomForSaleModelDefault));
         },
 
-        clearSelectedItems(){
+        clearAllData(){
+          this.clearOfferModel();
+          this.clearSaleModel();
+          this.clearRoomForSaleModel();
+
           this.dates = [];
-          this.selectedDate = []
+          this.selectedDate = [];
+          this.allocatedRooms = [];
+          this.selectedOffer = {};
+          this.temporalOffer = {};
         },
 
-        closeCreateSale(){
-          this.$emit('update:dialog',false);
-          this.clearRoomForSaleModel();
+
+         closeCreateSale(){
+
+
+          // this.busy = false;
         },
 
         ...mapActions({
@@ -817,6 +894,15 @@
       },
 
       computed: {
+
+        totalPersonNumber(){
+          // this.saleModel.total_person_number = this.getTotalPersonNumber();
+          let total = 0;
+          for(let room of this.allocatedRooms){
+            total += room.persons_going;
+          }
+          return total;
+        },
         roomDialogTitle(){
           return this.roomForSaleModel.options.edit ? 'Editeaza camera' : 'Adauga camera la vanzare';
         },
