@@ -115,6 +115,26 @@ class SalesController extends Controller
 
     public function delete($saleId){
 
+
+        //get sale_room_allocation rows that have this sale's id and then for each row get offer_dates_location_room where that
+        // offer_dates_location_room->vacant_places += sale_room_allocation->persons_going
+
+        $sale_room_allocations = \DB::table('sale_room_allocations')->where('sale_id', $saleId)->get();
+
+        foreach($sale_room_allocations as $allocatedRoom){
+
+            $offer_dates_location_room = \DB::table('offer_dates_location_room')
+                ->where('id', $allocatedRoom->offer_dates_location_room_id )->first();
+
+            $remaining_vacant_places = $offer_dates_location_room->vacant_places + $allocatedRoom->person_number;
+
+            \DB::table('offer_dates_location_room')
+                ->where('id', $allocatedRoom->offer_dates_location_room_id )
+                ->update([
+                    'vacant_places' => $remaining_vacant_places
+                ]);
+        }
+
         Sale::where('id', $saleId)->delete();
 
     }

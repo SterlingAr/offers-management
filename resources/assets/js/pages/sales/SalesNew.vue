@@ -582,7 +582,7 @@
 
             ],
             personsNames: [
-              v => !!v || 'Numele persoanelor este obligatoriu',
+              v => this.roomForSaleModel.persons_names.length === this.roomForSaleModel.persons_going || 'Introduceti numele celor ' + this.roomForSaleModel.persons_going + ' persoane ',
               v => this.roomForSaleModel.persons_names.length <= this.roomForSaleModel.persons_going || 'Nu puteti adauga mai multe nume decate locuri sunt disponibile'
             ]
           },
@@ -763,7 +763,15 @@
 
         removeRoom(){
           let index = this.roomForSaleModel.options.deletedIndex;
+
+          let allocatedRoom = this.allocatedRooms[index];
+          let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
+
+          indivRoom.vacant_places += allocatedRoom.persons_going;
+
           this.allocatedRooms.splice(index,1);
+
+
           this.clearRoomForSaleModel();
         },
 
@@ -777,7 +785,7 @@
         editRoom(room){
           this.clearRoomForSaleModel();
           //sale room stored in allocatedRooms
-          this.roomForSaleModel. offer_dates_location_room_id = room.id;
+          this.roomForSaleModel.offer_dates_location_room_id = room.id;
           this.roomForSaleModel.persons_going = room.persons_going;
           this.roomForSaleModel.persons_names = JSON.parse(JSON.stringify(room.persons_names));
           //normal room from the dates array., used to retrieve aditional data
@@ -785,6 +793,10 @@
           this.roomForSaleModel.vacant_places = room.vacant_places;
           this.roomForSaleModel.options.edit = true;
           this.roomForSaleModel.options.editedIndex = this.allocatedRooms.indexOf(room); //find room and save the index
+
+
+
+
           console.log(this.allocatedRooms.indexOf(room));
 
         },
@@ -808,16 +820,46 @@
             room.location = {};
             room.location.id = this.selectedLocation.id;
             room.location.name = this.selectedLocation.name;
-
             this.allocatedRooms.push(room);
+
+            let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === room.offer_dates_location_room_id);
+            indivRoom.vacant_places -= room.persons_going;
+
             this.selectedIndividualRoom = {};
+
+
+
             this.clearRoomForSaleModel();
         },
 
+
+
         updateRoomFromSale(){
+
             let room = this.allocatedRooms[this.roomForSaleModel.options.editedIndex];
+
+            let oldPersonsGoing = room.persons_going;
+
             room.persons_going = this.roomForSaleModel.persons_going;
             room.persons_names = this.roomForSaleModel.persons_names;
+
+            let places = room.persons_going;
+
+            let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === room.offer_dates_location_room_id);
+
+
+            if(room.persons_going > oldPersonsGoing){
+               places = room.persons_going - oldPersonsGoing;
+               indivRoom.vacant_places -= places;
+            }
+
+
+            if(room.persons_going < oldPersonsGoing){
+              places = oldPersonsGoing - room.persons_going;
+              indivRoom.vacant_places += places;
+            }
+
+
             this.clearRoomForSaleModel();
         },
 
@@ -878,15 +920,18 @@
           this.selectedDate = [];
           this.allocatedRooms = [];
           this.selectedOffer = {};
+          this.selectedRoom = {};
           this.temporalOffer = {};
         },
 
 
          closeCreateSale(){
 
+          this.clearAllData();
+          this.$emit('update:dialog',false);
 
-          // this.busy = false;
-        },
+
+         },
 
         ...mapActions({
           searchOffers: 'searchOffers'
