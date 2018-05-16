@@ -9,7 +9,7 @@ class SaleRoomAllocation extends Model
     protected $fillable=[
         "offer_dates_location_room_id",
         "sale_id",
-        "person_number",
+        "persons_going",
         "persons_names",
 
     ];

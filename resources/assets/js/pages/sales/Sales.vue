@@ -58,13 +58,14 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
-
-        <new-sale :reindex.sync="reindex" :dialog.sync="dialog" :initial-offers="initialOffers"></new-sale>
+        <new-sale-dialog :reindex.sync="reindex" :dialog.sync="dialog"></new-sale-dialog>
+        <edit-sale-dialog :selected-offer="selectedOffer" :sale-model="saleModel" :allocated-rooms="allocatedRooms" :reindex.sync="reindex" :edit-dialog.sync="editDialog"></edit-sale-dialog>
     </div>
 </template>
 
 <script>
   import SalesNew from './SalesNew'
+  import SalesEdit from './SalesEdit'
   import { mapState } from 'vuex'
   import axios from 'axios'
   import debounce from '../../tools/debounce/debounce.js'
@@ -76,18 +77,35 @@
     },
     mounted() {
         this.indexTable();
+
     },
 
     data(){
       return {
         busy: false,
         dialog:false,
+        editDialog: false,
         deletingSale: false,
         saleForDelete: {},
+        selectedOffer: {},
+        saleModel: {
+          first_name: "",
+          last_name: "",
+          email: "",
+          phone: "",
+          offer_id: "",
+          total_person_number: 0,
+          payment_status: "notpaid",
+          coupon_code: "",
+          total_amount: 0.00,
+          options: {
+            valid: false,
+          }
+        },
+        allocatedRooms: [],
         search: '',
         reindex : false,
         delay: 4000,
-        initialOffers: [],
 
         salesHeaders: [
           {text: 'ID', value: 'id'},
@@ -143,8 +161,44 @@
 
       },
 
-      editSale(sale){
+      async editSale(sale){
 
+        this.saleModel.last_name = sale.last_name;
+        this.saleModel.first_name = sale.first_name;
+        this.saleModel.email = sale.email;
+        this.saleModel.phone = sale.phone;
+        this.saleModel.total_person_number = sale.total_person_number;
+        this.saleModel.payment_status = sale.payment_status;
+        this.saleModel.coupon_code = sale.coupon_code;
+        this.saleModel.total_amount = sale.total_amount;
+
+
+
+        // saleModel: {
+        //   first_name: "",
+        //     last_name: "",
+        //     email: "",
+        //     phone: "",
+        //     offer_id: "",
+        //     total_person_number: 0,
+        //     payment_status: "notpaid",
+        //     coupon_code: "",
+        //     total_amount: 0.00,
+        //     options: {
+        //     valid: false,
+        //   }
+        // },
+
+        try {
+          const {data} = await axios.get('/api/sales/' + sale.id);
+          this.allocatedRooms = data.allocatedRooms;
+          this.selectedOffer = data.offer;
+          console.log(data);
+        } catch (e) {
+          console.log(e);
+        }
+
+        this.editDialog=true;
       },
 
 
@@ -166,15 +220,14 @@
 
 
     computed:{
-
-
-      ...mapState({
-        offers: state => state.offers.offers //?
-      })
+      // ...mapState({
+      //   offers: state => state.offers.offers //?
+      // })
     },
 
     components: {
-      'new-sale' : SalesNew,
+      'new-sale-dialog' : SalesNew,
+      'edit-sale-dialog' : SalesEdit,
     },
 
     directives: {debounce},

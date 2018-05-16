@@ -122,7 +122,7 @@
                                                 <v-btn icon class="mx-0" @click="editRoom(props.item)">
                                                     <v-icon color="teal">edit</v-icon>
                                                 </v-btn>
-                                                <v-btn icon class="mx-0" @click="removeRoomDialog(props.item)">
+                                                <v-btn icon class="mx-0" @click="removeRoomFromTableDialog(props.item)">
                                                     <v-icon color="pink">delete</v-icon>
                                                 </v-btn>
                                             </td>
@@ -310,7 +310,6 @@
         <v-dialog
             max-width="700px"
             v-model="offerModel.options.changingOffer || offerModel.options.selectingOffer "
-
             persistent
         >
             <v-card>
@@ -367,7 +366,6 @@
                     <v-btn color="blue darken-1" @click="updateOffer" v-else>Actualizeaza</v-btn>
                 </v-card-actions>
             </v-card>
-
         </v-dialog>
         <!-- Add room to sale dialog -->
         <v-dialog
@@ -462,7 +460,6 @@
           addRoomDialog: false,
           editRoomDialog: false,
 
-
           temporalOffer: {},
 
           //at the end, should choose between object or just id.
@@ -514,6 +511,7 @@
               valid: false,
             }
           },
+
           roomForSaleModelDefault: {
             offer_dates_location_room_id: '',
             price_person : '',
@@ -643,11 +641,9 @@
 
 
               console.log(data);
-
-
+              await this.clearAllData();
               this.$emit('update:dialog',false);
               this.$emit('update:reindex', true);
-              await this.clearAllData();
 
 
               this.$store.dispatch('responseMessage', {
@@ -744,7 +740,6 @@
         },
 
 
-
         addRoomToSaleDialog(room){
           this.clearRoomForSaleModel();
           this.selectedIndividualRoom = room;
@@ -760,19 +755,31 @@
           this.roomForSaleModel.options.deletedIndex = this.allocatedRooms.indexOf(r);
           this.roomForSaleModel.options.delete = true;
         },
+        //
+        removeRoomFromTableDialog(room){
+          this.roomForSaleModel.options.deletedIndex = this.allocatedRooms.indexOf(room);
+          this.roomForSaleModel.options.delete = true;
+        },
 
         removeRoom(){
           let index = this.roomForSaleModel.options.deletedIndex;
 
           let allocatedRoom = this.allocatedRooms[index];
-          let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
+
+          // let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
+          let indivRoom = this.findIndivRoom(allocatedRoom.offer_dates_location_room_id);
 
           indivRoom.vacant_places += allocatedRoom.persons_going;
 
           this.allocatedRooms.splice(index,1);
-
-
           this.clearRoomForSaleModel();
+
+        },
+
+        findIndivRoom(id){
+
+          return this.dates.find(d => d.locations.find(l => l.rooms.find(r => r.individualRooms.find(r=> r.id === id))));
+
         },
 
         // the room objects in the stepper (num 5)  table are not the same as the ones in selectedRoomForSale use the room's id to
@@ -793,9 +800,6 @@
           this.roomForSaleModel.vacant_places = room.vacant_places;
           this.roomForSaleModel.options.edit = true;
           this.roomForSaleModel.options.editedIndex = this.allocatedRooms.indexOf(room); //find room and save the index
-
-
-
 
           console.log(this.allocatedRooms.indexOf(room));
 
@@ -826,7 +830,6 @@
             indivRoom.vacant_places -= room.persons_going;
 
             this.selectedIndividualRoom = {};
-
 
 
             this.clearRoomForSaleModel();
@@ -871,15 +874,13 @@
         
         //FORMAT, HELPERS AND OTHER METHODS.
 
-        getTotalPersonNumber(){
-
-        },
 
         dateConcat(date){
           let start =  this.friendlyDateFormat(new Date(date.start_date));
           let end = this.friendlyDateFormat(new Date(date.end_date));
           return start + ' - ' + end
         },
+
         //return formated date for display
         friendlyDateFormat(date) {
           let dateObj = new Date(date);
@@ -922,6 +923,8 @@
           this.selectedOffer = {};
           this.selectedRoom = {};
           this.temporalOffer = {};
+          this.currentStep = 0;
+          this.addingRoomsToSale = false;
         },
 
 
@@ -929,7 +932,6 @@
 
           this.clearAllData();
           this.$emit('update:dialog',false);
-
 
          },
 
