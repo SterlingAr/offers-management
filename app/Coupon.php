@@ -9,5 +9,6 @@ class Coupon extends Model
     protected $fillable=[
         "code",
         "reedems",
+        "reduction_value"
     ];
 }

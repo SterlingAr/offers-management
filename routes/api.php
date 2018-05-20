@@ -50,7 +50,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/sales/search', 'SalesController@indexTable');
     Route::get('/sales/{sale_id}', 'SalesController@show');
     Route::post('/sales/add', 'SalesController@store');
-    Route::post('/sales/update', 'SalesController@update');
+    Route::post('/sales/update/{sale_id}', 'SalesController@update');
     Route::delete('/sales/delete/{sale_id}', 'SalesController@delete');
 
 

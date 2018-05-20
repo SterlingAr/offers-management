@@ -13,7 +13,7 @@ class CouponsController extends Controller
 
     public function create(Request $request){
 
-        $coupon=Coupon::create($request->toArray());
+        $coupon = Coupon::create($request->toArray());
 
 
         return response()->json([

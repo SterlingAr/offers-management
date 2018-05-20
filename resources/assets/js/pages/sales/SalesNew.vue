@@ -634,17 +634,15 @@
 
             this.busy = true;
             try {
+
               const { data }  = await axios.post('/api/sales/add', {
                 saleFields : this.saleModel,
                 allocatedRooms: this.allocatedRooms
               });
 
-
-              console.log(data);
-              await this.clearAllData();
+              this.clearAllData();
               this.$emit('update:dialog',false);
               this.$emit('update:reindex', true);
-
 
               this.$store.dispatch('responseMessage', {
                 type: 'success',
@@ -735,6 +733,7 @@
             this.allocatedRooms = [];
           }
           this.selectedOffer = this.temporalOffer;
+          this.$emit('update:selectedOffer', this.temporalOffer);
           this.saleModel.offer_id = this.selectedOffer.id;
           this.clearOfferModel();
         },
@@ -768,7 +767,7 @@
 
           // let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
           let indivRoom = this.findIndivRoom(allocatedRoom.offer_dates_location_room_id);
-
+          console.log(indivRoom);
           indivRoom.vacant_places += allocatedRoom.persons_going;
 
           this.allocatedRooms.splice(index,1);
@@ -777,9 +776,17 @@
         },
 
         findIndivRoom(id){
-
-          return this.dates.find(d => d.locations.find(l => l.rooms.find(r => r.individualRooms.find(r=> r.id === id))));
-
+          for(let date of this.dates){
+            for(let location of date.locations){
+              for(let room of location.rooms){
+                for(let indRoom of room.individualRooms){
+                  if(indRoom.id === id){
+                    return indRoom;
+                  }
+                }
+              }
+            }
+          }
         },
 
         // the room objects in the stepper (num 5)  table are not the same as the ones in selectedRoomForSale use the room's id to
@@ -909,13 +916,10 @@
 
         clearRoomForSaleModel(){
           this.$refs.roomSaleFields.reset();
-          this.roomForSaleModel = JSON.parse(JSON.stringify(this.roomForSaleModelDefault));
+          this.roomForSaleModel = this.roomForSaleModelDefault;
         },
 
         clearAllData(){
-          this.clearOfferModel();
-          this.clearSaleModel();
-          this.clearRoomForSaleModel();
 
           this.dates = [];
           this.selectedDate = [];
@@ -925,6 +929,11 @@
           this.temporalOffer = {};
           this.currentStep = 0;
           this.addingRoomsToSale = false;
+
+          this.clearOfferModel();
+          this.clearSaleModel();
+          this.clearRoomForSaleModel();
+
         },
 
 

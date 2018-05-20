@@ -59,7 +59,7 @@
             </v-card>
         </v-dialog>
         <new-sale-dialog :reindex.sync="reindex" :dialog.sync="dialog"></new-sale-dialog>
-        <edit-sale-dialog :selected-offer="selectedOffer" :sale-model="saleModel" :allocated-rooms="allocatedRooms" :reindex.sync="reindex" :edit-dialog.sync="editDialog"></edit-sale-dialog>
+        <edit-sale-dialog :selected-offer.sync="selectedOffer" :sale-model.sync="saleModel" :allocated-rooms.sync="allocatedRooms" :reindex.sync="reindex" :edit-dialog.sync="editDialog"></edit-sale-dialog>
     </div>
 </template>
 
@@ -162,7 +162,7 @@
       },
 
       async editSale(sale){
-
+        this.saleModel.id = sale.id;
         this.saleModel.last_name = sale.last_name;
         this.saleModel.first_name = sale.first_name;
         this.saleModel.email = sale.email;
@@ -193,6 +193,8 @@
           const {data} = await axios.get('/api/sales/' + sale.id);
           this.allocatedRooms = data.allocatedRooms;
           this.selectedOffer = data.offer;
+          this.saleModel.offer_id = data.offer.id;
+
           console.log(data);
         } catch (e) {
           console.log(e);

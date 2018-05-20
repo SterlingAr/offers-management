@@ -16,7 +16,9 @@
 
                <td>{{ props.item.id }}</td>
                <td class="text-xs-left">{{ props.item.code }}</td>
+               <td class="text-xs-left">{{ props.item.value }}</td>
                <td class="text-xs-left">{{ props.item.reedems }}</td>
+
                <td class="justify-center layout px-0">
                    <v-btn icon class="mx-0" @click="updateCoupon(props.item)">
                        <v-icon color="teal">edit</v-icon>
@@ -51,12 +53,15 @@
                 <v-flex xs12>
                     <v-text-field type="number" v-model="couponModel.reedems" label="Numar folosiri" required></v-text-field>
                 </v-flex>
+                    <v-flex xs12>
+                        <v-text-field type="number" v-model="couponModel.reduction_value" label="Reducere pe persoana" required></v-text-field>
+                    </v-flex>
                 </v-form>
             </v-card-text>
              <v-card-actions>
                  <v-spacer></v-spacer>
                  <v-btn color="blue darken-1" flat @click.native="addModal = false">Inchide</v-btn>
-                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="addCoupon">Salveaza</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="updateCoupon">Salveaza</v-btn>
              </v-card-actions>
 
          </v-card>
@@ -79,7 +84,7 @@
             return { title: "Cupoane discount" }
         },
         mounted(){
-            this.fetchCoupons()
+            this.fetchCoupons();
         },
         data(){
             return {
@@ -87,11 +92,19 @@
                 search:'',
                 addModal:false,
                 busy:false,
+                couponModelDefault:{
+                    valid:false,
+                    edit:false,
+                    code:"",
+                    reedems:20,
+                    reduction_value: 0,
+                },
                 couponModel:{
                     valid:false,
                     edit:false,
                     code:"",
                     reedems:20,
+                    reduction_value: 0,
                 },
                 validationRules: {
                     codeRules: [
@@ -111,7 +124,8 @@
                         text: 'Cupon code',
                         value: 'code'
                     },
-                    { text: 'Numar validari', value: 'reedems' }
+                  { text: 'Reducere pe persoana', value: 'reduction_value' },
+                  { text: 'Numar validari', value: 'reedems' },
 
                 ],
 
@@ -125,7 +139,8 @@
                     code:model.code,
                     valid:false,
                     edit:true,
-                    reedems:model.reedems,
+                    reedems: model.reedems,
+                    reduction_value: model.reduction_value,
 
                 };
                 this.addModal=true;
@@ -137,6 +152,7 @@
                     valid:false,
                     edit:false,
                     reedems:20,
+                    reduction_value: 0
 
                 };
                 this.addModal=true;
@@ -154,7 +170,7 @@
                         text: 'Cupon adaugat'
                     });
                     this.addModal=false;
-
+                    this.fetchCoupons();
 
                 } catch (e){
 
@@ -170,7 +186,6 @@
 
             async fetchCoupons(){
                 this.busy=false;
-
                 try {
                     const { data } = await   axios.get('/api/coupons')
                     this.busy=false;
@@ -187,9 +202,11 @@
                         text: e.message
                     })
                 }
+            },
 
-
-            }
+          clearCouponModel(){
+              this.couponModel = this.couponModelDefault;
+          }
 
         }
     }

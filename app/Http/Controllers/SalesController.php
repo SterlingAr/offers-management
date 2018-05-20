@@ -57,7 +57,7 @@ class SalesController extends Controller
                 'sale_room_allocations.persons_going', //persons_going in frontend
                 'sale_room_allocations.persons_names',
                 'rooms.type',
-                'locations.name',
+                'locations.name AS location_name',
                 'offer_dates.start_date',
                 'offer_dates.end_date',
                 'offer_dates_location_room.person_number', //total persons that fit in a room
@@ -130,6 +130,8 @@ class SalesController extends Controller
 
     public function update(Request $request, $saleId){
 
+        $sale = '';
+
         if($request->has('saleFields')) {
 
             $saleFields = $request->input('saleFields');
@@ -152,24 +154,22 @@ class SalesController extends Controller
             // update total_persons_going and total_amount on the sale row.
             $dealocatedRooms = $request->input('deallocatedRooms');
             //try catch
-            $this->deallocateRooms($dealocatedRooms);
+            $this->deallocateRoomsFromSale($sale,$dealocatedRooms);
         }
 
         if($request->has('allocatedRooms')) {
             $allocatedRooms = $request->input('allocatedRooms');
-            $roomsValidator = $this->validateAllocatedRooms($allocatedRooms);
-
-            if (!$roomsValidator->passes()) {
-                return response()->json([
-                    'errors' => $roomsValidator->errors()->all()
-                ], 400);
+            if($allocatedRooms){
+                $roomsValidator = $this->validateAllocatedRooms($allocatedRooms);
+                if (!$roomsValidator->passes()) {
+                    return response()->json([
+                        'errors' => $roomsValidator->errors()->all()
+                    ], 400);
+                }
+                //try catch
+                $this->updateAllocatedRooms($sale, $allocatedRooms);
             }
-            //try catch 
-            $this->updateAllocatedRooms($sale, $allocatedRooms);
-
         }
-
-
     }
 
     public function delete($saleId){
@@ -202,11 +202,10 @@ class SalesController extends Controller
 
         $total_persons = 0;
         $total_amount = 0;
-
+//        var_dump($allocatedRooms);
         foreach($allocatedRooms as $room){
 
-            $offer_dates_location_room = \DB::table('offer_dates_location_room')
-                ->where('id', $room['offer_dates_location_room_id'] )->first();
+            $offer_dates_location_room = \DB::table('offer_dates_location_room')->where('id', $room['offer_dates_location_room_id'])->first();
 
             if( $offer_dates_location_room->vacant_places > 0 &&
                 $room['persons_going'] <= $offer_dates_location_room->person_number &&
@@ -238,42 +237,83 @@ class SalesController extends Controller
 
     private function updateAllocatedRooms(Sale $sale, array $allocatedRooms){
         $newAllocatedRooms = [];
-        //persons_going, persons_names
         foreach($allocatedRooms as $room){
 
-            $allocatedRoom = \DB::table('sales_room_allocations')->where('id', $room['id']);
-
-            if($room['isNew'] && $allocatedRoom->first()){
-                $newAllocatedRooms[] = array($room);
+            if(isset($room['isNew']) && $room['isNew']){
+                array_push($newAllocatedRooms, $room);
                 continue;
+            } else {
+
+                $allocatedRoom = SaleRoomAllocation::where('id', $room['id'])->first();
+//                var_dump($room);
+                if($allocatedRoom->persons_going != $room['persons_going']){
+
+//                    $sale->total_person_number =
+                    if($room['persons_going'] > $allocatedRoom->persons_going){
+                        $sale->total_person_number += $room['persons_going'] - $allocatedRoom->persons_going;
+                    } else {
+                        $sale->total_person_number -= $allocatedRoom->persons_going - $room['persons_going'];
+                    }
+
+                    $newPrice = $room['price_person'] * $room['persons_going'];
+                    $oldPrice = $room['price_person'] * $allocatedRoom->persons_going;
+
+                    $sale->total_amount -= $oldPrice;
+                    $sale->total_amount += $newPrice;
+
+                    $allocatedRoom->persons_going = $room['persons_going'];
+                    $allocatedRoom->persons_names = $room['persons_names'];
+                    $allocatedRoom->save();
+                }
             }
-
-            $allocatedRoom->update([
-                'persons_going' => $room['persons_going'],
-                'persons_names' => $room['persons_names']
-            ]);
-
         }
-
+        if($newAllocatedRooms){
+            $this->allocateRoomsToSale($sale, $newAllocatedRooms);
+        } else {
+            $sale->save();
+        }
         //try catch
-        $this->allocateRoomsToSale($sale, $newAllocatedRooms);
     }
 
-    private function dellocateRoomsFromSale(Sale $sale, array $allocatedRooms){
+    private function deallocateRoomsFromSale(Sale $sale, array $allocatedRooms){
         //for each room, updated_total_person_number += sale_room_allocation->persons_going
         // updated_total_amount = offer_dates_location_room->price_person * sale_room_allocation->persons_going
         // when the for is complete, update Sale fields with the new total_person_number && total_amount
         // $sale->total_person_number -= updated_total_person_number
         // $sale->total_amount -= updated_total_amount
         foreach($allocatedRooms as $room){
-            $allocatedRoom = \DB::table('sale_allocation_rooms')
-            ->join('offer_dates_location_room', 'sale_allocation_rooms.offer_dates_location_room_id', '=', 'offer_dates_location_room.id')
-            ->where('id', $room['id'])->first(); //join
-            
+            $allocatedRoom = \DB::table('sale_room_allocations')
+                ->where('id', $room['id'])
+                ->first(); //join
+//                ->join('offer_dates_location_room', 'sale_room_allocations.offer_dates_location_room_id', '=', 'offer_dates_location_room.id')
+//                ->where('sale_room_allocations.id', $room['id'])
+
+
+            $offer_dates_location_room = \DB::table('offer_dates_location_room')
+                ->where('id', $room['offer_dates_location_room_id'])
+                ->first();
+
+//            var_dump($allocatedRoom);
             //$offer_date_location_room = \DB::table('offer_dates_location_room')->where('id', $room['offer_dates_location_room_id'])->first();
             $sale->total_person_number -= $allocatedRoom->persons_going;
-            $sale->total_amount -= $allocatedRoom->persons_going * $allocatedRoom->price_person;
-            \DB::table('sale_allocation_rooms')->where('id', $allocatedRoom[id])->delete();
+//            $sale->total_person_number -= $allocatedRoom['persons_going'];
+            $sale->total_amount -= $allocatedRoom->persons_going * $offer_dates_location_room->price_person;
+//            $sale->total_amount -= $allocatedRoom['persons_going'] * $offer_dates_location_room->price_person;
+
+//            $offer_dates_location_room->vacant_places +=  $allocatedRoom->persons_going;
+
+//            \DB::table('sale_room_allocations')->where('id', $allocatedRoom->id)->delete();
+            SaleRoomAllocation::where('id', $room['id'])->delete();
+
+            if($offer_dates_location_room->vacant_places <= $offer_dates_location_room->person_number){
+//                $offer_dates_location_room->save();
+                $offer_dates_location_room = \DB::table('offer_dates_location_room')
+                    ->where('id', $room['offer_dates_location_room_id'])->update([
+                        'vacant_places' => $offer_dates_location_room->vacant_places + $allocatedRoom->persons_going
+                    ]);
+            }
+
+            $sale->save();
         }
     }
 
@@ -304,6 +344,5 @@ class SalesController extends Controller
 
         return Validator::make($allocatedRooms, $roomRules);
     }
-
 
 }

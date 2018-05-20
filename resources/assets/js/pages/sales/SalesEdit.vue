@@ -16,7 +16,7 @@
                     <v-toolbar-title>Editeaza Vanzare</v-toolbar-title>
                     <v-spacer></v-spacer>
                     <v-toolbar-items>
-                        <v-btn dark flat @click.native="createSale">Actualizeaza</v-btn>
+                        <v-btn dark flat @click.native="updateSale">Actualizeaza</v-btn>
                     </v-toolbar-items>
                 </v-toolbar>
                 <v-card-text>
@@ -98,11 +98,11 @@
                                             class="elevation-1"
                                     >
                                         <template slot="items" slot-scope="props">
-                                            <td class="text-xs-center">{{ props.item.offer_dates_location_room_id }}</td>
+                                            <td class="text-xs-center">{{ props.item.id }}</td>
                                             <td class="text-xs-center">{{dateConcat(props.item.start_date, props.item.end_date)}}</td>
-                                            <td class="text-xs-center">{{props.item.name}}</td>
+                                            <td class="text-xs-center">{{props.item.location_name}}</td>
                                             <td class="text-xs-center">{{props.item.type}}</td>
-                                            <td class="text-xs-center">{{props.item.person_number}}</td>
+                                            <td class="text-xs-center">{{props.item.persons_going}}</td>
                                             <td class="text-xs-center">
                                                 <span v-for="name in props.item.persons_names">
                                                     {{ name }},
@@ -369,6 +369,8 @@
             <v-card>
                 <v-card-title>
                     <span class="headline">{{ roomDialogTitle }}</span>
+                    <br>
+                    <span class="headline">Locuri disponibile: {{roomForSaleModel.vacant_places}}</span>
                 </v-card-title>
                 <v-card-text>
                     <v-form
@@ -444,6 +446,7 @@
     },
 
     mounted(){
+
     },
 
     data () {
@@ -460,7 +463,7 @@
         selectedLocation: {},
         selectedRoom: {},
         selectedIndividualRoom: {},
-
+        deallocatedRooms: [],
         // allocatedRooms: [],
 
         // offers:[],
@@ -552,10 +555,12 @@
           personsGoing: [
             v => !!v || 'Numarul de persoane pe camera este obligatoriu',
             v => /^\d+$/.test(v) || 'Este necesara o valoare numerica',
-            v => v <= this.roomForSaleModel.vacant_places || 'Nu puteti aloca mai multe persoana decate locuri sunt disponibile',
+            // v => v <= this.roomForSaleModel.vacant_places || 'Nu puteti aloca mai multe persoane decate locuri sunt disponibile',
+            v => v <= this.roomForSaleModel.persons_going  || 'Nu puteti aloca mai multe persoane decate locuri sunt disponibile',
             v => v <= this.roomForSaleModel.person_number || 'Nu puteti specifica mai multe locuri disponibile decate persoane incap in camera',
-
           ],
+
+
           personsNames: [
             v => this.roomForSaleModel.persons_names.length === this.roomForSaleModel.persons_going || 'Introduceti numele celor ' + this.roomForSaleModel.persons_going + ' persoane ',
             v => this.roomForSaleModel.persons_names.length <= this.roomForSaleModel.persons_going || 'Nu puteti adauga mai multe nume decate locuri sunt disponibile'
@@ -607,6 +612,32 @@
 
     methods: {
 
+
+      async updateSale(){
+        this.busy = true;
+        try {
+
+          const {data} = await axios.post('/api/sales/update/'+ this.saleModel.id, {
+            'allocatedRooms' : this.allocatedRooms,
+            'saleFields': this.saleModel,
+            'deallocatedRooms': this.deallocatedRooms
+          });
+          this.clearAllData();
+          this.$emit('update:editDialog',false);
+          this.$emit('update:reindex', true);
+
+          this.$store.dispatch('responseMessage', {
+            type: 'success',
+            text: 'Vanzare actualizata'
+          });
+
+
+        } catch(e){
+          console.log(e);
+        }
+        this.busy = false;
+      },
+
       async fetchDates(offerId){
         this.busyDatesTable = true;
         try {
@@ -617,7 +648,6 @@
           console.log(e);
         }
       },
-
 
 
       selectOffer(){
@@ -633,12 +663,22 @@
       updateOffer(){
 
         if(this.offerModel.options.changingOffer){
-          // this.allocatedRooms = [];
+
+          for(let room of this.allocatedRooms){
+            if(room.isNew === undefined){
+              this.deallocatedRooms.push(room);
+            }
+          }
           this.$emit('update:allocatedRooms', []);
         }
         // this.selectedOffer = this.temporalOffer;
         this.$emit('update:selectedOffer', this.temporalOffer);
-        this.saleModel.offer_id = this.selectedOffer.id;
+        // this.saleModel.offer_id = this.selectedOffer.id;
+        let newSaleModel = JSON.parse(JSON.stringify(this.saleModel));
+        newSaleModel.offer_id = this.temporalOffer.id;
+        console.log(JSON.parse(JSON.stringify(newSaleModel)));
+
+        this.$emit('update:saleModel', newSaleModel);
         this.clearOfferModel();
       },
 
@@ -698,7 +738,7 @@
         this.roomForSaleModel.options.deletedIndex = this.allocatedRooms.indexOf(room);
         this.roomForSaleModel.options.delete = true;
       },
-
+       //from stepper
       removeRoomDialog(room){
         let r = this.allocatedRooms.find(r => r.offer_dates_location_room_id === room.id);
         this.roomForSaleModel.options.deletedIndex = this.allocatedRooms.indexOf(r);
@@ -706,17 +746,24 @@
       },
 
       removeRoom(){
-
         let index = this.roomForSaleModel.options.deletedIndex;
-        // let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
 
+        let removableRoom = this.allocatedRooms[index];
+
+        if(!removableRoom.isNew){
+          this.deallocatedRooms.push(removableRoom);
+        }
+
+        // let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
+        if(this.currentStep > 0){
+          let indivRoom = this.findIndivRoom(removableRoom.offer_dates_location_room_id);
+          console.log(indivRoom);
+          indivRoom.vacant_places += removableRoom.persons_going;
+        }
+
+        // let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === allocatedRoom.offer_dates_location_room_id);
         this.allocatedRooms.splice(index,1);
         this.clearRoomForSaleModel();
-      },
-
-
-      findIndivRoom(id){
-        return this.dates.find(d => d.locations.find(l => l.rooms.find(r => r.individualRooms.find(r=> r.id === id))));
       },
 
 
@@ -746,16 +793,15 @@
         room.persons_going = this.roomForSaleModel.persons_going;
         room.type = this.selectedRoom.type;
         room.price_person = this.roomForSaleModel.price_person;
-        room.vacant_places = this.roomForSaleModel.vacant_places;
+        // room.vacant_places = this.roomForSaleModel.vacant_places;
         room.person_number = this.roomForSaleModel.person_number;
         room.persons_names = this.roomForSaleModel.persons_names;
 
         room.start_date = this.selectedDate.start_date;
         room.end_date = this.selectedDate.end_date;
 
-        room.location = {};
-        room.location.id = this.selectedLocation.id;
-        room.location.name = this.selectedLocation.name;
+
+        room.location_name = this.selectedLocation.name;
         this.allocatedRooms.push(room);
 
         let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === room.offer_dates_location_room_id);
@@ -763,39 +809,62 @@
 
         this.selectedIndividualRoom = {};
 
-
         this.clearRoomForSaleModel();
       },
 
-
-
-      updateRoomFromSale(){
-
-        let room = this.allocatedRooms[this.roomForSaleModel.options.editedIndex];
-
-        let oldPersonsGoing = room.persons_going;
-
-        room.persons_going = this.roomForSaleModel.persons_going;
-        room.persons_names = this.roomForSaleModel.persons_names;
-
-        let places = room.persons_going;
-
-        let indivRoom = this.selectedRoom.individualRooms.find(r => r.id === room.offer_dates_location_room_id);
-
-
-        if(room.persons_going > oldPersonsGoing){
-          places = room.persons_going - oldPersonsGoing;
-          indivRoom.vacant_places -= places;
+      findIndivRoom(id){
+        for(let date of this.dates){
+          for(let location of date.locations){
+            for(let room of location.rooms){
+              for(let indRoom of room.individualRooms){
+                if(indRoom.id === id){
+                  return indRoom;
+                }
+              }
+            }
+          }
         }
+      },
+
+      async updateRoomFromSale(){
+        this.busy = true;
+        try {
+
+          if(!this.dates.length){
+            await this.fetchDates(this.selectedOffer.id);
+          }
+
+          let room = this.allocatedRooms[this.roomForSaleModel.options.editedIndex];
+
+          let oldPersonsGoing = room.persons_going;
+
+          room.persons_going = this.roomForSaleModel.persons_going;
+          room.persons_names = this.roomForSaleModel.persons_names;
+
+          let places = room.persons_going;
+
+          let indivRoom = this.findIndivRoom(room.offer_dates_location_room_id);
 
 
-        if(room.persons_going < oldPersonsGoing){
-          places = oldPersonsGoing - room.persons_going;
-          indivRoom.vacant_places += places;
+          if(room.persons_going > oldPersonsGoing){
+            places = room.persons_going - oldPersonsGoing;
+            indivRoom.vacant_places -= places;
+            room.vacant_places = indivRoom.vacant_places;
+          }
+
+          if(room.persons_going < oldPersonsGoing){
+            places = oldPersonsGoing - room.persons_going;
+            indivRoom.vacant_places += places;
+            room.vacant_places = indivRoom.vacant_places;
+          }
+
+          this.clearRoomForSaleModel();
+
+        } catch(e){
+          console.log(e);
         }
+        this.busy = false;
 
-
-        this.clearRoomForSaleModel();
       },
 
       //remove person from roomForSaleModel.persons_names
@@ -838,6 +907,7 @@
 
       clearOfferModel(){
         this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+        this.temporalOffer = {};
       },
       clearSaleModel(){
         this.$refs.saleFields.reset();
@@ -860,6 +930,8 @@
         this.selectedDate = [];
         this.selectedRoom = {};
         this.temporalOffer = {};
+        this.selectedLocation = {};
+        this.deallocatedRooms = [];
         this.currentStep = 0;
         this.addingRoomsToSale = false;
       },
