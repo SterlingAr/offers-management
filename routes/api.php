@@ -28,6 +28,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/coupons', 'CouponsController@create');
     Route::get('/coupons', 'CouponsController@get');
     Route::get('/rooms', 'RoomController@index');
+    Route::get('/rooms/update', 'RoomController@index');
 
 
     Route::get('/offers','OfferController@index');

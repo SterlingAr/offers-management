@@ -907,11 +907,11 @@
         },
 
         clearOfferModel(){
-          this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+          this.offerModel = this.offerModelDefault;
         },
         clearSaleModel(){
           this.$refs.saleFields.reset();
-          this.saleModel = JSON.parse(JSON.stringify(this.saleModelDefault));
+          this.saleModel = this.saleModelDefault;
         },
 
         clearRoomForSaleModel(){

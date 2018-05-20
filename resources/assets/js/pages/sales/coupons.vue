@@ -20,7 +20,7 @@
                <td class="text-xs-left">{{ props.item.reedems }}</td>
 
                <td class="justify-center layout px-0">
-                   <v-btn icon class="mx-0" @click="updateCoupon(props.item)">
+                   <v-btn icon class="mx-0" @click="updateCouponDialog(props.item)">
                        <v-icon color="teal">edit</v-icon>
                    </v-btn>
                    <v-btn icon class="mx-0" @click="deleteItem(props.item)">
@@ -51,17 +51,18 @@
                 <v-text-field :rules="validationRules.codeRules" label="Nume Cupon" v-model="couponModel.code" required></v-text-field>
               </v-flex>
                 <v-flex xs12>
-                    <v-text-field type="number" v-model="couponModel.reedems" label="Numar folosiri" required></v-text-field>
+                    <v-text-field type="number" v-model.number="couponModel.reedems" label="Numar folosiri" required></v-text-field>
                 </v-flex>
                     <v-flex xs12>
-                        <v-text-field type="number" v-model="couponModel.reduction_value" label="Reducere pe persoana" required></v-text-field>
+                        <v-text-field type="number" v-model.number="couponModel.reduction_value" label="Reducere pe persoana" required></v-text-field>
                     </v-flex>
                 </v-form>
             </v-card-text>
              <v-card-actions>
                  <v-spacer></v-spacer>
                  <v-btn color="blue darken-1" flat @click.native="addModal = false">Inchide</v-btn>
-                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="updateCoupon">Salveaza</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="updateCoupon" v-if="couponModel.edit">Actualizeaza</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="addCoupon" v-else>Salveaza</v-btn>
              </v-card-actions>
 
          </v-card>
@@ -134,16 +135,30 @@
 
         methods:{
 
-            updateCoupon(model){
-                this.couponModel={
+            updateCouponDialog(model){
+                this.couponModel = {
+                    id: model.id,
                     code:model.code,
                     valid:false,
                     edit:true,
                     reedems: model.reedems,
                     reduction_value: model.reduction_value,
-
                 };
+
                 this.addModal=true;
+            },
+
+            async updateCoupon(){
+              this.busy = true;
+              try{
+                const {data} = await axios.post('/api/coupons/update',{
+                  coupon : this.couponModel,
+                });
+                console.log(data);
+              } catch(e){
+                console.log(e);
+              }
+              this.busy = false;
             },
 
             addModalInit(){

@@ -906,25 +906,22 @@
       },
 
       clearOfferModel(){
-        this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+        this.offerModel = this.offerModelDefault;
         this.temporalOffer = {};
       },
       clearSaleModel(){
         this.$refs.saleFields.reset();
-        this.saleModel = JSON.parse(JSON.stringify(this.saleModelDefault));
+        // this.saleModel = this.saleModelDefault;
       },
 
       clearRoomForSaleModel(){
         this.$refs.roomSaleFields.reset();
-        this.roomForSaleModel = JSON.parse(JSON.stringify(this.roomForSaleModelDefault));
+        this.roomForSaleModel = this.roomForSaleModelDefault;
       },
 
         //
 
       clearAllData(){
-        // this.clearOfferModel();
-        // this.clearSaleModel();
-        // this.clearRoomForSaleModel();
 
         this.dates = [];
         this.selectedDate = [];

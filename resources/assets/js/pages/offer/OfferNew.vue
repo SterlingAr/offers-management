@@ -929,29 +929,29 @@
       //set offer model to default values, reset form fields and close any add,edit or delete dialogs.
       clearOfferModel(){
         this.$refs.offerFields.reset();
-        this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+        this.offerModel = this.offerModelDefault;
       },
 
       //set date model to default values, reset form fields and close any add,edit or delete dialogs.
       clearDateModelAndClose(){
         this.$refs.dateFields.reset();
-        this.dateModel = JSON.parse(JSON.stringify(this.dateModelDefault));
+        this.dateModel = this.dateModelDefault;
       },
 
       //set location model to default values, reset form fields and close any add,edit or delete dialogs.
       clearLocationModelAndClose(){
         this.$refs.locationFields.reset();
-        this.locationModel = JSON.parse(JSON.stringify(this.locationModelDefault));
+        this.locationModel = this.locationModelDefault;
       },
       //set room model to default values, reset form fields and close any add,edit or delete dialogs.
       clearRoomModelAndClose(){
         this.$refs.roomFields.reset();
-        this.roomModel = JSON.parse(JSON.stringify(this.roomModelDefault));
+        this.roomModel = this.roomModelDefault;
       },
       //set individual room model to default values, reset form fields and close any add,edit or delete dialogs.
       clearIndividualRoomModelAndClose(){
         this.$refs.individualRoomFields.reset();
-        this.individualRoomModel = JSON.parse(JSON.stringify(this.individualRoomModelDefault));
+        this.individualRoomModel = this.individualRoomModelDefault;
       },
       clearAllData(){
         this.clearOfferModel();
