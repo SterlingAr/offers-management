@@ -906,7 +906,7 @@
       },
 
       clearOfferModel(){
-        this.offerModel = this.offerModelDefault;
+        this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
         this.temporalOffer = {};
       },
       clearSaleModel(){
@@ -916,7 +916,7 @@
 
       clearRoomForSaleModel(){
         this.$refs.roomSaleFields.reset();
-        this.roomForSaleModel = this.roomForSaleModelDefault;
+        this.roomForSaleModel = JSON.parse(JSON.stringify(this.roomForSaleModelDefault));
       },
 
         //

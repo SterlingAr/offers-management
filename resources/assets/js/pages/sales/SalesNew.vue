@@ -129,6 +129,22 @@
                                         </template>
                                     </v-data-table>
                                 </v-card-text>
+                                <v-card-text>
+                                    <span class="left headline">
+                                        Total: {{ totalPriceSale() }}
+                                    </span>
+                                    <v-spacer></v-spacer>
+                                    <v-flex md6 xs6>
+                                        <v-text-field
+                                                name="coupon"
+                                                label="Cod cupon"
+                                                v-model="couponCode"
+                                        ></v-text-field>
+                                        <v-btn color="blue right" @click="applyCoupon">
+                                            Aplica cupon
+                                        </v-btn>
+                                    </v-flex>
+                                </v-card-text>
                             </v-flex>
                             <!-- STEPPER CONTAINER -->
                             <v-flex md6 xs12 v-if="addingRoomsToSale">
@@ -296,7 +312,6 @@
                                                 Inapoi
                                             </v-btn>
                                             <v-spacer></v-spacer>
-
                                         </v-stepper-content>
                                     </v-stepper-items>
                                 </v-stepper>
@@ -468,8 +483,11 @@
           selectedLocation: {},
           selectedRoom: {},
           selectedIndividualRoom: {},
-
           allocatedRooms: [],
+
+          coupon: {},
+          couponCode: '',
+          couponReduction: 0,
 
           // offers:[],
           dates:[],
@@ -678,6 +696,17 @@
           } catch(e) {
             console.log(e);
           }
+        },
+
+        async applyCoupon(){
+            try {
+              const {data} = await axios.get('/api/coupons/'+this.couponCode);
+              this.coupon = data.coupon;
+              this.couponReduction = data.coupon.reduction_value;
+              console.log(data);
+            } catch(e){
+              console.log(e);
+            }
         },
 
         selectOffer(){
@@ -907,16 +936,18 @@
         },
 
         clearOfferModel(){
-          this.offerModel = this.offerModelDefault;
+          this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
         },
+
         clearSaleModel(){
           this.$refs.saleFields.reset();
-          this.saleModel = this.saleModelDefault;
+          this.saleModel = JSON.parse(JSON.stringify(this.saleModelDefault));
         },
 
         clearRoomForSaleModel(){
           this.$refs.roomSaleFields.reset();
-          this.roomForSaleModel = this.roomForSaleModelDefault;
+          this.roomForSaleModel =  JSON.parse(JSON.stringify( this.roomForSaleModelDefault));
+
         },
 
         clearAllData(){
@@ -943,6 +974,13 @@
           this.$emit('update:dialog',false);
 
          },
+        totalPriceSale: function (){
+          let total = 0;
+          for(let room of this.allocatedRooms){
+            total += room.persons_going * room.price_person - (room.persons_going * this.couponReduction);
+          }
+          return total;
+        },
 
         ...mapActions({
           searchOffers: 'searchOffers'
@@ -950,6 +988,8 @@
       },
 
       computed: {
+
+
 
         totalPersonNumber(){
           // this.saleModel.total_person_number = this.getTotalPersonNumber();

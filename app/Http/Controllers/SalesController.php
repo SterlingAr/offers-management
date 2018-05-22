@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Validator;
 use App\Sale;
 use App\Offer;
+use App\Coupon;
 use App\SaleRoomAllocation;
 class SalesController extends Controller
 {
@@ -97,6 +98,8 @@ class SalesController extends Controller
                 'offer_id' => $saleFields['offer_id'],
                 'email' => $saleFields['email'],
                 'phone' => $saleFields['phone'],
+                'coupon_code' => $saleFields['coupon_code']
+
             ]);
 
             $sale->save();
@@ -128,6 +131,7 @@ class SalesController extends Controller
 
         $sale = '';
 
+
         if($request->has('saleFields')) {
 
             $saleFields = $request->input('saleFields');
@@ -138,11 +142,13 @@ class SalesController extends Controller
                     'errors' => $saleValidator->errors()->all()
                 ], 400);
             }
+
             $sale = Sale::where('id', $saleId)->first();
             $sale->first_name = $saleFields['first_name'];
             $sale->last_name = $saleFields['last_name'];
             $sale->offer_id = $saleFields['offer_id'];
             $sale->email = $saleFields['email'];
+            $sale->coupon_code = $saleFields['coupon_code'];
         }
 
         if($request->has('deallocatedRooms')){
@@ -193,6 +199,13 @@ class SalesController extends Controller
 
         $total_persons = 0;
         $total_amount = 0;
+        $reduction = 0;
+
+        if(isset($sale->coupon_code)){
+            $reduction = Coupon::where('code', $sale->coupon_code)->first()->reduction_value;
+
+        }
+
         foreach($allocatedRooms as $room){
 
             $offer_dates_location_room = \DB::table('offer_dates_location_room')->where('id', $room['offer_dates_location_room_id'])->first();
@@ -203,6 +216,11 @@ class SalesController extends Controller
             ){
 
                 $total_amount += $room['persons_going'] * $room['price_person'];
+
+                if($reduction > 0){
+                    $total_amount -= $reduction * $room['persons_going'];
+                }
+
                 $total_persons += $room['persons_going'];
                 $remaining_vacant_places = $offer_dates_location_room->vacant_places - $room['persons_going'];
                 \DB::table('offer_dates_location_room')
@@ -227,6 +245,10 @@ class SalesController extends Controller
 
     private function updateAllocatedRooms(Sale $sale, array $allocatedRooms){
         $newAllocatedRooms = [];
+        $reduction = 0;
+        if(isset($sale->coupon_code)){
+            $reduction = Coupon::where('code', $sale->coupon_code)->first()->reduction_value;
+        }
         foreach($allocatedRooms as $room){
 
             if(isset($room['isNew']) && $room['isNew']){
@@ -246,6 +268,10 @@ class SalesController extends Controller
                     $newPrice = $room['price_person'] * $room['persons_going'];
                     $oldPrice = $room['price_person'] * $allocatedRoom->persons_going;
 
+                    if($reduction > 0){
+                        $newPrice -= $reduction * $room['persons_going'];
+                    }
+
                     $sale->total_amount -= $oldPrice;
                     $sale->total_amount += $newPrice;
 
@@ -264,6 +290,8 @@ class SalesController extends Controller
 
     private function deallocateRoomsFromSale(Sale $sale, array $allocatedRooms){
 
+        $reduction = 0;
+
         foreach($allocatedRooms as $room){
             $allocatedRoom = \DB::table('sale_room_allocations')
                 ->where('id', $room['id'])
@@ -275,7 +303,14 @@ class SalesController extends Controller
 
 
             $sale->total_person_number -= $allocatedRoom->persons_going;
-            $sale->total_amount -= $allocatedRoom->persons_going * $offer_dates_location_room->price_person;
+
+            $roomTotalPrice = $allocatedRoom->persons_going * $offer_dates_location_room->price_person;
+
+            if($reduction > 0){
+                $roomTotalPrice += $reduction;
+            }
+
+            $sale->total_amount -= $roomTotalPrice ;
 
             SaleRoomAllocation::where('id', $room['id'])->delete();
 
@@ -299,8 +334,8 @@ class SalesController extends Controller
             'last_name' => 'required|bail',
             'email' => 'required|bail|email',
             'phone' => 'required|bail|max:20',
-            'offer_id' => 'required|bail|exists:offers,id'
-//            'coupon' => 'exists:coupons,id'
+            'offer_id' => 'required|bail|exists:offers,id',
+            'coupon_id' => 'exists:coupons,id'
         ];
 
         return Validator::make($saleFields,$saleRules);

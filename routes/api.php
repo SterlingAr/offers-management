@@ -26,6 +26,8 @@ Route::group(['middleware' => 'auth:api'], function () {
 
     Route::get('/available-rooms', 'OfferController@getAvailableRooms');
     Route::post('/coupons', 'CouponsController@create');
+    Route::get('/coupons/{code}', 'CouponsController@show');
+    Route::post('/coupons/update', 'CouponsController@update');
     Route::get('/coupons', 'CouponsController@get');
     Route::get('/rooms', 'RoomController@index');
     Route::get('/rooms/update', 'RoomController@index');
