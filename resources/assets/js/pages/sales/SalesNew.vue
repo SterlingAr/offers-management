@@ -140,9 +140,14 @@
                                                 label="Cod cupon"
                                                 v-model="couponCode"
                                         ></v-text-field>
+
                                         <v-btn color="blue right" @click="applyCoupon">
                                             Aplica cupon
                                         </v-btn>
+                                        <v-btn color="red right" @click="deleteCoupon" v-if="Object.keys(this.coupon).length > 0">
+                                            Stergere cupon
+                                        </v-btn>
+
                                     </v-flex>
                                 </v-card-text>
                             </v-flex>
@@ -703,10 +708,17 @@
               const {data} = await axios.get('/api/coupons/'+this.couponCode);
               this.coupon = data.coupon;
               this.couponReduction = data.coupon.reduction_value;
+              this.saleModel.coupon_id = data.coupon.id;
               console.log(data);
             } catch(e){
               console.log(e);
             }
+        },
+
+        deleteCoupon(){
+          this.coupon = {};
+          this.couponReduction = 0;
+          this.couponCode = '';
         },
 
         selectOffer(){

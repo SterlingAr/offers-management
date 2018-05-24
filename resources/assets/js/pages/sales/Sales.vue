@@ -50,7 +50,7 @@
         <!-- Confirm delete sale dialog -->
         <v-dialog v-model="deletingSale" max-width="290">
             <v-card>
-                <v-card-title class="headline">Stergere camera?</v-card-title>
+                <v-card-title class="headline">Stergere vanzare?</v-card-title>
                 <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-btn color="green darken-1" flat="flat" @click="deletingSale = false">Inchide</v-btn>
@@ -59,7 +59,7 @@
             </v-card>
         </v-dialog>
         <new-sale-dialog :reindex.sync="reindex" :dialog.sync="dialog"></new-sale-dialog>
-        <edit-sale-dialog :selected-offer.sync="selectedOffer" :sale-model.sync="saleModel" :allocated-rooms.sync="allocatedRooms" :reindex.sync="reindex" :edit-dialog.sync="editDialog"></edit-sale-dialog>
+        <edit-sale-dialog :selected-offer.sync="selectedOffer" :sale-model.sync="saleModel" :allocated-rooms.sync="allocatedRooms" :coupon.sync="coupon" :coupon-reduction.sync="couponReduction" :coupon-code.sync="couponCode" :reindex.sync="reindex" :edit-dialog.sync="editDialog"></edit-sale-dialog>
     </div>
 </template>
 
@@ -88,6 +88,8 @@
         deletingSale: false,
         saleForDelete: {},
         selectedOffer: {},
+
+        //props for edit
         saleModel: {
           first_name: "",
           last_name: "",
@@ -103,6 +105,9 @@
           }
         },
         allocatedRooms: [],
+        coupon: {},
+        couponCode: '',
+        couponReduction: '',
         search: '',
         reindex : false,
         delay: 4000,
@@ -172,28 +177,19 @@
         this.saleModel.coupon_code = sale.coupon_code;
         this.saleModel.total_amount = sale.total_amount;
 
-
-
-        // saleModel: {
-        //   first_name: "",
-        //     last_name: "",
-        //     email: "",
-        //     phone: "",
-        //     offer_id: "",
-        //     total_person_number: 0,
-        //     payment_status: "notpaid",
-        //     coupon_code: "",
-        //     total_amount: 0.00,
-        //     options: {
-        //     valid: false,
-        //   }
-        // },
-
         try {
           const {data} = await axios.get('/api/sales/' + sale.id);
           this.allocatedRooms = data.allocatedRooms;
           this.selectedOffer = data.offer;
           this.saleModel.offer_id = data.offer.id;
+
+          if(data.coupon !== undefined && data.coupon !== null){
+
+            this.coupon = data.coupon;
+            this.couponReduction = data.coupon.reduction_value;
+            this.couponCode = data.coupon.code;
+            this.saleModel.coupon_id = data.coupon.id;
+          }
 
           console.log(data);
         } catch (e) {

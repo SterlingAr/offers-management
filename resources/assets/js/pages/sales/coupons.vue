@@ -69,12 +69,12 @@
 
       </v-dialog>
        <!-- Confirm delete coupon dialog -->
-       <v-dialog v-model="deleteCoupon" max-width="290">
+       <v-dialog v-model="deletingCoupon" max-width="290">
            <v-card>
-               <v-card-title class="headline">Stergere camera?</v-card-title>
+               <v-card-title class="headline">Stergere cupon?</v-card-title>
                <v-card-actions>
                    <v-spacer></v-spacer>
-                   <v-btn color="green darken-1" flat="flat" @click="deleteCoupon = false">Inchide</v-btn>
+                   <v-btn color="green darken-1" flat="flat" @click="deletingCoupon = false">Inchide</v-btn>
                    <v-btn flat large color="error" @click="deleteCoupon">Da, sterge</v-btn>
                </v-card-actions>
            </v-card>
@@ -99,7 +99,7 @@
                 coupons:[],
                 search:'',
                 addModal:false,
-                deleteCoupon: false,
+                deletingCoupon: false,
                 busy:false,
                 couponModelDefault:{
                     valid:false,
@@ -171,7 +171,8 @@
             },
 
             deleteCouponDialog(coupon){
-
+                this.couponModel.id = coupon.id;
+                this.deletingCoupon = true;
             },
 
             async updateCoupon(){
@@ -212,9 +213,18 @@
                 }
             },
 
-            async deleteCoupon(){
-
-            },
+          deleteCoupon: async function () {
+            this.busy = true
+            try {
+              const {data} = await axios.delete('/api/coupons/delete/' + this.couponModel.id)
+              this.clearCouponModel();
+              this.fetchCoupons();
+              this.deletingCoupon = false;
+            } catch (e) {
+              console.log(e)
+            }
+            this.busy = false
+          },
 
             async fetchCoupons(){
                 this.busy=false;

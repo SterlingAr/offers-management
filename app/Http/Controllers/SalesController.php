@@ -22,7 +22,8 @@ class SalesController extends Controller
             "phone",
             "total_person_number",
             "payment_status",
-            "total_amount"
+            "total_amount",
+            "coupon_code"
         ]);
 
         if(!empty($request->query)){
@@ -41,7 +42,7 @@ class SalesController extends Controller
         ]);
 
     }
-
+    //returns allocated rooms belonging to a sale.
     public function show($saleId){
 
 
@@ -72,6 +73,14 @@ class SalesController extends Controller
 
 
         $sale = Sale::with('offer')->where('id', $saleId)->first();
+        if(isset($sale->coupon_code)){
+            $coupon = Coupon::where('code',$sale->coupon_code)->first();
+            return response()->json([
+                'offer' => $sale->offer,
+                'allocatedRooms' => $allocatedRooms,
+                'coupon' => $coupon
+            ]);
+        }
         return response()->json([
             'offer' => $sale->offer,
             'allocatedRooms' => $allocatedRooms
@@ -92,15 +101,21 @@ class SalesController extends Controller
                 ],400);
             }
 
+
+
             $sale = Sale::create([
                 'first_name' => $saleFields['first_name'],
                 'last_name' => $saleFields['last_name'],
                 'offer_id' => $saleFields['offer_id'],
                 'email' => $saleFields['email'],
                 'phone' => $saleFields['phone'],
-                'coupon_code' => $saleFields['coupon_code']
-
             ]);
+
+            if(isset($saleFields['coupon_id'])){
+                $coupon =  Coupon::where('id', $saleFields['coupon_id'])->first();
+                $sale->coupon_code = $coupon->code;
+
+            }
 
             $sale->save();
 
@@ -148,7 +163,14 @@ class SalesController extends Controller
             $sale->last_name = $saleFields['last_name'];
             $sale->offer_id = $saleFields['offer_id'];
             $sale->email = $saleFields['email'];
-            $sale->coupon_code = $saleFields['coupon_code'];
+
+            if(isset($saleFields['coupon_id'])){
+                $sale->coupon_code = Coupon::where('id', $saleFields['coupon_id'])->first()->code;
+            } else {
+                $sale->coupon_code = null;
+            }
+
+
         }
 
         if($request->has('deallocatedRooms')){
@@ -203,7 +225,6 @@ class SalesController extends Controller
 
         if(isset($sale->coupon_code)){
             $reduction = Coupon::where('code', $sale->coupon_code)->first()->reduction_value;
-
         }
 
         foreach($allocatedRooms as $room){
@@ -243,12 +264,20 @@ class SalesController extends Controller
         $sale->save();
     }
 
+    /**
+     * @param Sale $sale
+     * @param array $allocatedRooms
+     */
     private function updateAllocatedRooms(Sale $sale, array $allocatedRooms){
         $newAllocatedRooms = [];
         $reduction = 0;
+
         if(isset($sale->coupon_code)){
             $reduction = Coupon::where('code', $sale->coupon_code)->first()->reduction_value;
         }
+
+        $sale->total_amount = 0;
+
         foreach($allocatedRooms as $room){
 
             if(isset($room['isNew']) && $room['isNew']){
@@ -257,28 +286,45 @@ class SalesController extends Controller
             } else {
 
                 $allocatedRoom = SaleRoomAllocation::where('id', $room['id'])->first();
+
+
                 if($allocatedRoom->persons_going != $room['persons_going']){
 
+
+                    $vacant_places = 0;
+
                     if($room['persons_going'] > $allocatedRoom->persons_going){
-                        $sale->total_person_number += $room['persons_going'] - $allocatedRoom->persons_going;
+                        $vacant_places = $room['persons_going'] - $allocatedRoom->persons_going;
+                        $sale->total_person_number += $vacant_places;
                     } else {
-                        $sale->total_person_number -= $allocatedRoom->persons_going - $room['persons_going'];
+                        $vacant_places = $allocatedRoom->persons_going - $room['persons_going'];
+                        $sale->total_person_number -= $vacant_places;
                     }
 
-                    $newPrice = $room['price_person'] * $room['persons_going'];
-                    $oldPrice = $room['price_person'] * $allocatedRoom->persons_going;
+                    if($vacant_places > 0){
+                        $offer_date_location_room =  \DB::table('offer_dates_location_room')
+                            ->where('id', $allocatedRoom['offer_dates_location_room_id'])->first();
 
-                    if($reduction > 0){
-                        $newPrice -= $reduction * $room['persons_going'];
+                        $newVacantPlaces = $vacant_places + $offer_date_location_room->vacant_places;
+                        \DB::table('offer_dates_location_room')
+                            ->where('id', $allocatedRoom['offer_dates_location_room_id'])->update([
+                                'vacant_places' => $newVacantPlaces
+                            ]);
                     }
 
-                    $sale->total_amount -= $oldPrice;
-                    $sale->total_amount += $newPrice;
-
-                    $allocatedRoom->persons_going = $room['persons_going'];
-                    $allocatedRoom->persons_names = $room['persons_names'];
-                    $allocatedRoom->save();
                 }
+
+                $newPrice = $room['price_person'] * $room['persons_going'];
+
+                if($reduction > 0){
+                    $newPrice -= $reduction * $room['persons_going'];
+                }
+
+                $sale->total_amount += $newPrice;
+
+                $allocatedRoom->persons_going = $room['persons_going'];
+                $allocatedRoom->persons_names = $room['persons_names'];
+                $allocatedRoom->save();
             }
         }
         if($newAllocatedRooms){
@@ -291,6 +337,9 @@ class SalesController extends Controller
     private function deallocateRoomsFromSale(Sale $sale, array $allocatedRooms){
 
         $reduction = 0;
+        if(isset($sale->coupon_code)){
+            $reduction = Coupon::where('code', $sale->coupon_code)->first()->reduction_value;
+        }
 
         foreach($allocatedRooms as $room){
             $allocatedRoom = \DB::table('sale_room_allocations')
@@ -307,17 +356,24 @@ class SalesController extends Controller
             $roomTotalPrice = $allocatedRoom->persons_going * $offer_dates_location_room->price_person;
 
             if($reduction > 0){
-                $roomTotalPrice += $reduction;
+                $roomTotalPrice -= $reduction * $allocatedRoom->persons_going;
             }
 
-            $sale->total_amount -= $roomTotalPrice ;
+            if(($sale->total_amount - $roomTotalPrice) < 0 ){
+                $sale->total_amount = 0;
+            } else {
+                $sale->total_amount -= $roomTotalPrice ;
+            }
+
 
             SaleRoomAllocation::where('id', $room['id'])->delete();
 
             if($offer_dates_location_room->vacant_places <= $offer_dates_location_room->person_number){
+                $newVacantPlaces = $offer_dates_location_room->vacant_places + $allocatedRoom->persons_going;
+
                 \DB::table('offer_dates_location_room')
                     ->where('id', $room['offer_dates_location_room_id'])->update([
-                        'vacant_places' => $offer_dates_location_room->vacant_places + $allocatedRoom->persons_going
+                        'vacant_places' => $newVacantPlaces
                     ]);
             }
             $sale->save();
@@ -335,7 +391,6 @@ class SalesController extends Controller
             'email' => 'required|bail|email',
             'phone' => 'required|bail|max:20',
             'offer_id' => 'required|bail|exists:offers,id',
-            'coupon_id' => 'exists:coupons,id'
         ];
 
         return Validator::make($saleFields,$saleRules);

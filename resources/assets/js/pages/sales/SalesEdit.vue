@@ -121,6 +121,28 @@
                                         </template>
                                     </v-data-table>
                                 </v-card-text>
+                                <v-card-text>
+                                    <span class="left headline">
+                                        Total: {{ totalPriceSale() }}
+                                    </span>
+                                    <v-spacer></v-spacer>
+                                    <v-flex md6 xs6>
+                                        <v-text-field
+                                                name="coupon"
+                                                label="Cod cupon"
+                                                v-model="couponCodeBuffer"
+                                                @input="$emit('update:couponCode', couponCodeBuffer)"
+                                        ></v-text-field>
+
+                                        <v-btn color="blue right" @click="applyCoupon">
+                                            Aplica cupon
+                                        </v-btn>
+                                        <v-btn color="red right" @click="deleteCoupon" v-if="Object.keys(this.coupon).length > 0">
+                                            Stergere cupon
+                                        </v-btn>
+
+                                    </v-flex>
+                                </v-card-text>
                             </v-flex>
                             <!-- STEPPER CONTAINER -->
                             <v-flex md6 xs12 v-if="addingRoomsToSale">
@@ -466,6 +488,9 @@
         deallocatedRooms: [],
         // allocatedRooms: [],
 
+        couponCodeBuffer: '',
+
+
         // offers:[],
         dates: [],
         search: '',
@@ -612,24 +637,31 @@
 
     methods: {
 
+      mounted: function () {
+        this.couponCode = this.saleModel.coupon_code
+        this.applyCoupon();
+      },
+
 
       async updateSale(){
         this.busy = true;
         try {
-
           const {data} = await axios.post('/api/sales/update/'+ this.saleModel.id, {
             'allocatedRooms' : this.allocatedRooms,
             'saleFields': this.saleModel,
             'deallocatedRooms': this.deallocatedRooms
           });
-          this.clearAllData();
-          this.$emit('update:editDialog',false);
-          this.$emit('update:reindex', true);
 
           this.$store.dispatch('responseMessage', {
             type: 'success',
             text: 'Vanzare actualizata'
           });
+
+          this.clearAllData();
+          this.$emit('update:editDialog',false);
+          this.$emit('update:allocatedRooms',[]);
+          this.$emit('update:reindex', true);
+          this.deleteCoupon();
 
 
         } catch(e){
@@ -647,6 +679,41 @@
         } catch(e) {
           console.log(e);
         }
+      },
+
+      applyCoupon: async function () {
+        try {
+          const {data} = await axios.get('/api/coupons/' + this.couponCode)
+
+          this.$emit('update:coupon', data.coupon)
+          this.$emit('update:couponReduction', data.coupon.reduction_value)
+          let saleModelCopy = JSON.parse(JSON.stringify(this.saleModel))
+          saleModelCopy.coupon_id = data.coupon.id
+          this.$emit('update:saleModel', saleModelCopy)
+          console.log(data)
+        } catch (e) {
+          console.log(e)
+        }
+      },
+
+
+      deleteCoupon(){
+        this.$emit('update:coupon',{});
+        let saleModelCopy = JSON.parse(JSON.stringify(this.saleModel));
+        saleModelCopy.coupon_id = null;
+        this.$emit('update:saleModel', saleModelCopy);
+        this.$emit('update:couponReduction',0);
+        this.$emit('update:couponCode','');
+        this.couponCodeBuffer = '';
+      },
+
+
+      totalPriceSale: function (){
+        let total = 0;
+        for(let room of this.allocatedRooms){
+          total += room.persons_going * room.price_person - (room.persons_going * this.couponReduction);
+        }
+        return total;
       },
 
 
@@ -931,6 +998,8 @@
         this.deallocatedRooms = [];
         this.currentStep = 0;
         this.addingRoomsToSale = false;
+        this.couponCodeBuffer = '';
+
       },
 
       closeCreateSale(){
@@ -941,6 +1010,10 @@
       },
     },
     computed: {
+
+      appliedCoupon(){
+
+      },
 
       totalPersonNumber(){
         // this.saleModel.total_person_number = this.getTotalPersonNumber();
@@ -961,7 +1034,9 @@
       })
     },
 
-    props: ['editDialog','saleModel','allocatedRooms', 'selectedOffer']
+
+
+    props: ['editDialog','saleModel','allocatedRooms', 'selectedOffer','coupon','couponCode','couponReduction']
   }
 
 </script>

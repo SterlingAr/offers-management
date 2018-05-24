@@ -30,10 +30,10 @@ class CouponsController extends Controller
         $coupon = Coupon::where('code', $couponCode)->first();
 
         if(isset($coupon)){
-            if($coupon->reedems > 0){
+            if($coupon->redeems > 0){
                 return response()->json(['coupon' => $coupon]);
             } else {
-                return response()->json(['status' => 'Redeems number reached 0']);
+                return response()->json(['status' => 'Redeems number reached 0'],400);
             }
         }
 
@@ -74,11 +74,9 @@ class CouponsController extends Controller
     public function delete($couponId){
         
         try{
-
             Coupon::where('id', $couponId)->first()->delete(); 
             return response()->json(['status' => 'Coupon deleted'], 200);
         } catch(\Exception $e){
-
             return response()->json(['status' => 'Coupon deletion failed'], 400);
         }  
     }
