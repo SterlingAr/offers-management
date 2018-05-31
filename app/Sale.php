@@ -12,13 +12,14 @@ class Sale extends Model
         "email",
         "phone",
         "offer_id",
-        "location_id",
-        "offer_date_id",
         "total_person_number",
         "payment_status",
         "coupon_code",
         "total_amount"
-
     ];
+
+    public function offer(){
+        return $this->belongsTo('App\Offer');
+    }
 
 }

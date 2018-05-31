@@ -17,7 +17,7 @@ class CreateSaleRoomAllocationsTable extends Migration
             $table->increments('id');
             $table->integer('offer_dates_location_room_id')->unsigned();
             $table->integer('sale_id')->unsigned();
-            $table->integer('persons_number');
+            $table->integer('persons_going');
             $table->text('persons_names');
             $table->timestamps();
 

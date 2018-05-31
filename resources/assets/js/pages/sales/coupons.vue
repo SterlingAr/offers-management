@@ -16,12 +16,14 @@
 
                <td>{{ props.item.id }}</td>
                <td class="text-xs-left">{{ props.item.code }}</td>
-               <td class="text-xs-left">{{ props.item.reedems }}</td>
+               <td class="text-xs-left">{{ props.item.reduction_value }} €</td>
+               <td class="text-xs-left">{{ props.item.redeems }}</td>
+
                <td class="justify-center layout px-0">
-                   <v-btn icon class="mx-0" @click="updateCoupon(props.item)">
+                   <v-btn icon class="mx-0" @click="updateCouponDialog(props.item)">
                        <v-icon color="teal">edit</v-icon>
                    </v-btn>
-                   <v-btn icon class="mx-0" @click="deleteItem(props.item)">
+                   <v-btn icon class="mx-0" @click="deleteCouponDialog(props.item)">
                        <v-icon color="pink">delete</v-icon>
                    </v-btn>
                </td>
@@ -49,23 +51,34 @@
                 <v-text-field :rules="validationRules.codeRules" label="Nume Cupon" v-model="couponModel.code" required></v-text-field>
               </v-flex>
                 <v-flex xs12>
-                    <v-text-field type="number" v-model="couponModel.reedems" label="Numar folosiri" required></v-text-field>
+                    <v-text-field type="number" v-model.number="couponModel.redeems" label="Numar folosiri" required></v-text-field>
                 </v-flex>
+                    <v-flex xs12>
+                        <v-text-field type="number" v-model.number="couponModel.reduction_value" label="Reducere pe persoana" required></v-text-field>
+                    </v-flex>
                 </v-form>
             </v-card-text>
              <v-card-actions>
                  <v-spacer></v-spacer>
-                 <v-btn color="blue darken-1" flat @click.native="addModal = false">Inchide</v-btn>
-                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="addCoupon">Salveaza</v-btn>
+                 <v-btn color="blue darken-1" flat @click.native="closeCouponDialog">Inchide</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="updateCoupon" v-if="couponModel.edit">Actualizeaza</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="addCoupon" v-else>Salveaza</v-btn>
              </v-card-actions>
 
          </v-card>
 
       </v-dialog>
-
-
-
-
+       <!-- Confirm delete coupon dialog -->
+       <v-dialog v-model="deletingCoupon" max-width="290">
+           <v-card>
+               <v-card-title class="headline">Stergere cupon?</v-card-title>
+               <v-card-actions>
+                   <v-spacer></v-spacer>
+                   <v-btn color="green darken-1" flat="flat" @click="deletingCoupon = false">Inchide</v-btn>
+                   <v-btn flat large color="error" @click="deleteCoupon">Da, sterge</v-btn>
+               </v-card-actions>
+           </v-card>
+       </v-dialog>
    </div>
 </template>
 
@@ -79,19 +92,28 @@
             return { title: "Cupoane discount" }
         },
         mounted(){
-            this.fetchCoupons()
+            this.fetchCoupons();
         },
         data(){
             return {
                 coupons:[],
                 search:'',
                 addModal:false,
+                deletingCoupon: false,
                 busy:false,
+                couponModelDefault:{
+                    valid:false,
+                    edit:false,
+                    code:"",
+                    redeems:20,
+                    reduction_value: 0,
+                },
                 couponModel:{
                     valid:false,
                     edit:false,
                     code:"",
-                    reedems:20,
+                    redeems:20,
+                    reduction_value: 0,
                 },
                 validationRules: {
                     codeRules: [
@@ -111,7 +133,8 @@
                         text: 'Cupon code',
                         value: 'code'
                     },
-                    { text: 'Numar validari', value: 'reedems' }
+                  { text: 'Reducere pe persoana', value: 'reduction_value' },
+                  { text: 'Numar validari', value: 'redeems' },
 
                 ],
 
@@ -120,31 +143,56 @@
 
         methods:{
 
-            updateCoupon(model){
-                this.couponModel={
+
+          addModalInit(){
+            this.couponModel={
+              code:"",
+              valid:false,
+              edit:false,
+              redeems:20,
+              reduction_value: 0
+
+            };
+            this.addModal=true;
+          },
+
+
+          updateCouponDialog(model){
+                this.couponModel = {
+                    id: model.id,
                     code:model.code,
                     valid:false,
                     edit:true,
-                    reedems:model.reedems,
-
+                    redeems: model.redeems,
+                    reduction_value: model.reduction_value,
                 };
+
                 this.addModal=true;
             },
 
-            addModalInit(){
-                this.couponModel={
-                    code:"",
-                    valid:false,
-                    edit:false,
-                    reedems:20,
+            deleteCouponDialog(coupon){
+                this.couponModel.id = coupon.id;
+                this.deletingCoupon = true;
+            },
 
-                };
-                this.addModal=true;
+            async updateCoupon(){
+              this.busy = true;
+              try{
+                const {data} = await axios.post('/api/coupons/update',{
+                  coupon : this.couponModel,
+                });
+                console.log(data);
+                this.fetchCoupons();
+              } catch(e){
+                console.log(e);
+              }
+              this.busy = false;
+              this.clearCouponModel();
+
             },
 
             async addCoupon (){
                 this.busy=true;
-
                 try {
                 const { data } = await   axios.post('/api/coupons',this.couponModel)
                     this.busy=false;
@@ -154,7 +202,7 @@
                         text: 'Cupon adaugat'
                     });
                     this.addModal=false;
-
+                    this.fetchCoupons();
 
                 } catch (e){
 
@@ -163,14 +211,23 @@
                         text: e.message
                     })
                 }
-
-
-
             },
+
+          deleteCoupon: async function () {
+            this.busy = true
+            try {
+              const {data} = await axios.delete('/api/coupons/delete/' + this.couponModel.id)
+              this.clearCouponModel();
+              this.fetchCoupons();
+              this.deletingCoupon = false;
+            } catch (e) {
+              console.log(e)
+            }
+            this.busy = false
+          },
 
             async fetchCoupons(){
                 this.busy=false;
-
                 try {
                     const { data } = await   axios.get('/api/coupons')
                     this.busy=false;
@@ -187,9 +244,16 @@
                         text: e.message
                     })
                 }
+            },
 
+          closeCouponDialog(){
+            this.clearCouponModel();
+            this.addModal = false;
+          },
 
-            }
+          clearCouponModel(){
+              this.couponModel = JSON.parse(JSON.stringify(this.couponModelDefault));
+          }
 
         }
     }

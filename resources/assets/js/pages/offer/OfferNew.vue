@@ -214,6 +214,7 @@
                                                 <td class="text-xs-left">{{ props.item.id }}</td>
                                                 <td class="text-xs-left">{{ props.item.price_person }}</td>
                                                 <td class="text-xs-left">{{ props.item.person_number }}</td>
+                                                <td class="text-xs-left">{{ props.item.vacant_places }}</td>
                                                 <td class="text-xs-right">
                                                     <v-btn icon class="mx-0" @click="editIndividualRoomDialog(props.item)">
                                                         <v-icon color="teal">edit</v-icon>
@@ -396,7 +397,7 @@
                     >
                         <v-flex xs12>
                             <v-text-field
-                                    label="Price person"
+                                    label="Pret pe persoana"
                                     v-model.number="individualRoomModel.price_person"
                                     :rules="validationRules.pricePerson"
                                     required
@@ -404,9 +405,17 @@
                         </v-flex>
                         <v-flex xs12>
                             <v-text-field
-                                    label="Person number"
+                                    label="Numar de persoane pe camera"
                                     v-model.number="individualRoomModel.person_number"
                                     :rules="validationRules.personNumber"
+                                    required
+                            ></v-text-field>
+                        </v-flex>
+                        <v-flex xs12>
+                            <v-text-field
+                                    label="Locuri disponibile"
+                                    v-model.number="individualRoomModel.vacant_places"
+                                    :rules="validationRules.vacantPlaces"
                                     required
                             ></v-text-field>
                         </v-flex>
@@ -533,6 +542,7 @@
           id: 0,
           price_person: '',
           person_number:'',
+          vacant_places:'',
           options: {
             add:false,
             edit:  false,
@@ -589,6 +599,7 @@
           id: 0,
           price_person: '',
           person_number:'',
+          vacant_places: '',
           options: {
             add:false,
             edit:  false,
@@ -640,15 +651,17 @@
           ],
           pricePerson: [
             v => !!v || 'Pretul pe persoana este obligatoriu',
-            v => !isNaN(v) || 'Este necesara o valoare numerica'
-
+            v => /^\d+$/.test(v) || 'Este necesara o valoare numerica'
           ],
           personNumber: [
             v => !!v || 'Numarul de persoane pe camera este obligatoriu',
-            v => !isNaN(v) || 'Este necesara o valoare numerica'
+            v => /^\d+$/.test(v) || 'Este necesara o valoare numerica'
+          ],
+          vacantPlaces: [
+            v => /^\d+$/.test(v) || 'Este necesara o valoare numerica',
+            v => v <= this.individualRoomModel.person_number || 'Nu puteti specifica mai multe locuri disponibile decate persoane incap in camera'
           ]
         },
-
         datesTableHeaders: [
           {text:'ID', value:'id'},
           {text:'Data inceput', value:'start_date'},
@@ -665,11 +678,11 @@
         individualRoomHeaders: [
           {text: 'ID', value: 'id'},
           {text: 'Pret pe persoana', value:'price_person'},
-          {text: 'Persoane pe camera', value:'person_number'}
+          {text: 'Persoane pe camera', value:'person_number'},
+          {text: 'Locuri disponibile', value:'vacant_places'}
         ],
         falseId: 0, //For new offers only.
         roomFalseId: 0,
-
         dates: []
 
       }
@@ -679,21 +692,22 @@
       async createOffer()  {
 
         // if(this.offerModel.options.valid){
-          this.busy = true;
           try {
+            this.busy = true;
             const {data} = await  axios.post('/api/offers/add',{
               newOffer: this.offerModel,
               dates: this.dates,
             })
-            console.log(data);
-            this.busy=false;
-            console.log(data);
+            await this.closeCreateOffer();
+
             this.$store.dispatch('responseMessage', {
               type: 'success',
               text: 'Oferta adaugata'
             });
-            this.closeCreateOffer();
-            this.$emit('update:reindex', true)
+
+            this.$emit('update:reindex', true);
+
+
           } catch (e){
             console.log(e.response.data.errors);
             for(let error of e.response.data.errors) {
@@ -704,6 +718,7 @@
             }
           }
         // }
+
       },
 
       // dayFormat(){return "dd"},
@@ -861,6 +876,7 @@
         //data needed for persistence.
         individualRoom.price_person = this.individualRoomModel.price_person;
         individualRoom.person_number = this.individualRoomModel.person_number;
+        individualRoom.vacant_places = this.individualRoomModel.vacant_places;
         this.currentRoom.individualRooms.push(individualRoom);
         this.clearIndividualRoomModelAndClose();
       },
@@ -869,6 +885,7 @@
         let individualRoom = this.currentRoom.individualRooms[this.individualRoomModel.options.editedIndex];
         individualRoom.person_number = this.individualRoomModel.person_number;
         individualRoom.price_person = this.individualRoomModel.price_person;
+        individualRoom.vacant_places = this.individualRoomModel.vacant_places;
         this.clearIndividualRoomModelAndClose();
       },
       //remove from currentRoom
@@ -904,6 +921,7 @@
             //data needed for persistence.
             individualRoom.price_person = room.predefined_values.price_person;
             individualRoom.person_number = room.predefined_values.person_number;
+            individualRoom.vacant_places = room.predefined_values.person_number;
             room.individualRooms.push(individualRoom);
           }
         }
@@ -911,29 +929,29 @@
       //set offer model to default values, reset form fields and close any add,edit or delete dialogs.
       clearOfferModel(){
         this.$refs.offerFields.reset();
-        this.offerModel = JSON.parse(JSON.stringify(this.offerModelDefault));
+        this.offerModel = this.offerModelDefault;
       },
 
       //set date model to default values, reset form fields and close any add,edit or delete dialogs.
       clearDateModelAndClose(){
         this.$refs.dateFields.reset();
-        this.dateModel = JSON.parse(JSON.stringify(this.dateModelDefault));
+        this.dateModel = this.dateModelDefault;
       },
 
       //set location model to default values, reset form fields and close any add,edit or delete dialogs.
       clearLocationModelAndClose(){
         this.$refs.locationFields.reset();
-        this.locationModel = JSON.parse(JSON.stringify(this.locationModelDefault));
+        this.locationModel = this.locationModelDefault;
       },
       //set room model to default values, reset form fields and close any add,edit or delete dialogs.
       clearRoomModelAndClose(){
         this.$refs.roomFields.reset();
-        this.roomModel = JSON.parse(JSON.stringify(this.roomModelDefault));
+        this.roomModel = this.roomModelDefault;
       },
       //set individual room model to default values, reset form fields and close any add,edit or delete dialogs.
       clearIndividualRoomModelAndClose(){
         this.$refs.individualRoomFields.reset();
-        this.individualRoomModel = JSON.parse(JSON.stringify(this.individualRoomModelDefault));
+        this.individualRoomModel = this.individualRoomModelDefault;
       },
       clearAllData(){
         this.clearOfferModel();
@@ -952,9 +970,11 @@
 
       async closeCreateOffer(){
         await this.clearAllData();
-        await this.closeTableViews();
+        this.closeTableViews();
         this.$emit('update:dialog', false);
+        this.busy = false;
       }
+
     },
 
     computed: {

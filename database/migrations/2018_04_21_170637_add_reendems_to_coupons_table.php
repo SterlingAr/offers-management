@@ -14,7 +14,8 @@ class AddReendemsToCouponsTable extends Migration
     public function up()
     {
         Schema::table('coupons', function (Blueprint $table) {
-            $table->integer('reedems')->default(30);
+            $table->integer('redeems')->default(30);
+            $table->integer('reduction_value')->default(0);
         });
     }
 
