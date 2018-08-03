@@ -1,3 +1,5 @@
+# Live DEMO : http://balkan.marius-cv.com
+
 # Laravel-Vue SPA Starter
 
 > A Laravel-Vue SPA starter project template with Vuetify frontend. 
@@ -15,29 +17,6 @@ Forked from https://github.com/cretueusebiu/laravel-vue-spa
 - Authentication with [JWT](https://github.com/tymondesigns/jwt-auth)
 - Webpack with [laravel-mix](https://github.com/JeffreyWay/laravel-mix)
 
-## Installation
-
-- `git clone https://github.com/elcobvg/laravel-vuetify-spa.git`
-- `cd laravel-vue-spa`
-- `cp .env.example .env`
-- `composer install`
-- `php artisan key:generate`
-- `php artisan jwt:secret`
-- Edit `.env` and set your database connection details
-- `php artisan migrate`
-- `npm install` / `yarn`
-
-## Usage
-
-#### Development
-
-```bash
-# build and watch
-npm run watch
-
-# serve with hot reloading
-npm run hot
-```
 
 #### Production
 
