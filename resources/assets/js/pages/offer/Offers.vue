@@ -4,16 +4,6 @@
             <v-icon dark>add</v-icon>
         </v-btn>
         <v-card>
-            <v-alert class="animated bounceInRight" type="success" v-model="newOfferSuccess" dismissible>
-                Oferta creata cu succes
-            </v-alert>
-            <v-alert class="animated bounceInRight" type="success"  dismissible>
-                Oferta creata cu succes
-            </v-alert>
-
-            <v-alert class="animated bounceInRight" type="success"  dismissible>
-                Oferta actualizata cu succes
-            </v-alert>
             <v-card-title>
                 Offers
                 <v-spacer></v-spacer>
@@ -33,7 +23,6 @@
                     :search="search"
             >
                 <template slot="items" slot-scope="props">
-
                     <td>{{ props.item.id }}</td>
                     <td class="text-xs-left">{{ props.item.title }}</td>
                     <td class="text-xs-left">{{ props.item.description }}</td>
@@ -47,7 +36,7 @@
                     </td>
                 </template>
                 <v-alert slot="no-results" :value="true" color="error" icon="warning">
-                   Cautarea pentru "{{ search }}" nu are rezultate.
+                   No results for: "{{ search }}".
                 </v-alert>
             </v-data-table>
         </v-card>
@@ -77,8 +66,8 @@ import debounce from '../../tools/debounce/debounce.js'
           delay: 5000,
           headers: [
             { text: 'ID', align: 'left', value: 'id'},
-            { text: 'Titlu oferta', value: 'title'},
-            { text: 'Descriere', value: 'description' },
+            { text: 'Offer title', value: 'title'},
+            { text: 'Description', value: 'description' },
           ],
 
           offers: [],
@@ -120,8 +109,6 @@ import debounce from '../../tools/debounce/debounce.js'
         this.offerModel.id = offer.id;
         this.offerModel.title = offer.title;
         this.offerModel.description = offer.description;
-        // this.editedOffer = JSON.parse(JSON.stringify(offer));
-        // this.editedOffer.valid = false;
         this.fetchDates(offer.id)
         this.dialogEdit = true;
       },
@@ -140,16 +127,13 @@ import debounce from '../../tools/debounce/debounce.js'
 
       deleteOffer(offer) {
         const index = this.offers.indexOf(offer)
-        confirm('Esti sigur ca doresti sa stergi oferta?') &&
-
+        confirm('Are you sure about deleting the offer?') &&
         axios.delete('/api/offers/delete/' + offer.id).then((response) => {
           this.offers.splice(index, 1);
-
         }).catch((error) => {
             console.log(error);
         });
       },
-
       ...mapActions({
         getLocations : 'getLocations'
       }),

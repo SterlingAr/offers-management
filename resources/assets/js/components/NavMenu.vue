@@ -35,10 +35,10 @@ export default {
       name: this.$t('nav_menu_title'),
       items: [
         { title: 'Dashboard', icon: 'dashboard', route: { name: 'home' } },
-        { title: 'Locatii', icon: 'business', route: { name: 'locations' } },
-        { title: 'Oferte', icon: 'new_releases', route: { name: 'offers' } },
-        { title: 'Cupoane', icon: 'loyalty', route: { name: 'coupons' } },
-        { title: 'Vanzari', icon: 'credit_card', route: { name: 'vanzari' } }
+        { title: 'Locations', icon: 'business', route: { name: 'locations' } },
+        { title: 'Offers', icon: 'new_releases', route: { name: 'offers' } },
+        { title: 'Coupons', icon: 'loyalty', route: { name: 'coupons' } },
+        { title: 'Sales', icon: 'credit_card', route: { name: 'vanzari' } }
       ]
     }
   }

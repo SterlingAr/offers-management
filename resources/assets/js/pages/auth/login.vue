@@ -37,9 +37,7 @@
               v-model="remember"
               value="true"
             ></v-checkbox>
-
             <submit-button :block="true" :form="form" :label="$t('login')"></submit-button>
-
           </v-card-text>
           <v-card-actions>
             <router-link :to="{ name: 'register' }">

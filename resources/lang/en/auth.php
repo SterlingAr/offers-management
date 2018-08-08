@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'failed' => 'Parola sau username nu este corect.',
-    'throttle' => 'Prea multe incercari de login. Te rugam sa incerci din nou in :seconds seconds.',
+    'failed' => 'Wrong username or password.',
+    'throttle' => 'You tried to login too many times, wait for the next try in :seconds seconds.',
 
 ];
