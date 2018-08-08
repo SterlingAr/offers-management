@@ -10,7 +10,7 @@
                 <v-spacer></v-spacer>
                 <v-text-field
                         append-icon="search"
-                        label="Cauta vanzari"
+                        label="Search sales"
                         single-line
                         hide-details
                         @input="indexTable()"
@@ -42,7 +42,7 @@
                     </td>
                 </template>
                 <v-alert slot="no-results" :value="true" color="error" icon="warning">
-                    Cautarea pentru "{{ search }}" nu are rezultate.
+                    No results for: "{{ search }}"
                 </v-alert>
             </v-data-table>
         </v-card>
@@ -50,11 +50,11 @@
         <!-- Confirm delete sale dialog -->
         <v-dialog v-model="deletingSale" max-width="290">
             <v-card>
-                <v-card-title class="headline">Stergere vanzare?</v-card-title>
+                <v-card-title class="headline">Delete sale?</v-card-title>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn color="green darken-1" flat="flat" @click="deletingSale = false">Inchide</v-btn>
-                    <v-btn flat large color="error" @click="deleteSale">Da, sterge</v-btn>
+                    <v-btn color="green darken-1" flat="flat" @click="deletingSale = false">Close</v-btn>
+                    <v-btn flat large color="error" @click="deleteSale">Yes, delete it.</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -66,18 +66,17 @@
 <script>
   import SalesNew from './SalesNew'
   import SalesEdit from './SalesEdit'
-  import { mapState } from 'vuex'
   import axios from 'axios'
   import debounce from '../../tools/debounce/debounce.js'
 
   export default {
+
     name:"Vanzari",
     metaInfo () {
       return { title: "Vanzari" }
     },
     mounted() {
         this.indexTable();
-
     },
 
     data(){
@@ -114,12 +113,12 @@
 
         salesHeaders: [
           {text: 'ID', value: 'id'},
-          {text: 'Client', value: 'client_name'},
+          {text: 'Client name', value: 'client_name'},
           {text: 'Email', value: 'email'},
-          {text: 'Telefon', value: 'phone'},
-          {text: 'Total persoane', value:'total_person_number'},
-          {text: 'Status plata', value:'payment_status'},
-          {text: 'Suma totala', value:'total_amount'},
+          {text: 'Phone', value: 'phone'},
+          {text: 'Total person number', value:'total_person_number'},
+          {text: 'Transaction status', value:'payment_status'},
+          {text: 'Total sum', value:'total_amount'},
         ],
 
         sales: []
@@ -216,20 +215,12 @@
       }
     },
 
-
-    computed:{
-      // ...mapState({
-      //   offers: state => state.offers.offers //?
-      // })
-    },
-
     components: {
       'new-sale-dialog' : SalesNew,
       'edit-sale-dialog' : SalesEdit,
     },
 
     directives: {debounce},
-
 
   }
 </script>

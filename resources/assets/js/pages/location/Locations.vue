@@ -5,15 +5,15 @@
         </v-btn>
         <v-card>
             <v-alert class="animated bounceInRight" type="success" v-model="newLocationSuccess" dismissible>
-               Locatie creata cu succes
+               Location created
             </v-alert>
 
             <v-alert class="animated bounceInRight" type="success" v-model="updateLocationSuccess" dismissible>
-                Locatie actualizata cu succes
+                Location updated
             </v-alert>
 
             <v-card-title>
-                Locatii
+                Locations
                 <v-spacer></v-spacer>
                 <v-text-field
                         append-icon="search"
@@ -48,7 +48,7 @@
                     </td>
                 </template>
                 <v-alert slot="no-results" :value="true" color="error" icon="warning">
-                    CAutare pentru "{{ search }}" nu are rezultate
+                    No results for: "{{ search }}"
                 </v-alert>
             </v-data-table>
         </v-card>
@@ -77,13 +77,14 @@
 
         data() {
             return {
-                addDialog:false,
-                editDialog: false,
-                newLocationSuccess: false,
-                updateLocationSuccess: false,
-                editedLocation: {},
-                roomTypes:[],
-                origRooms: [],
+
+              addDialog:false,
+              editDialog: false,
+              newLocationSuccess: false,
+              updateLocationSuccess: false,
+              editedLocation: {},
+              roomTypes:[],
+              origRooms: [],
               search: '',
               delay: 5000,
               headers: [
@@ -93,17 +94,15 @@
                   value: 'id'
                 },
                 {
-                  text: 'Nume locatie',
+                  text: 'Location name',
                   value: 'name'
                 },
-                { text: 'Descriere', value: 'description' },
-                { text: 'Adresa', value: 'address' },
-                { text: 'Telefon', value: 'phone' },
-                { text: 'Telefon fix', value: 'landline' },
+                { text: 'Description', value: 'description' },
+                { text: 'Adress', value: 'address' },
+                { text: 'Phone', value: 'phone' },
+                { text: 'Landline', value: 'landline' },
               ],
-              locations: [
-
-              ]
+              locations: []
 
             }
         },
@@ -128,9 +127,7 @@
                 }).catch((error) => {
 
                 });
-
             },
-
 
             editItem(item) {
                   let em = this;
@@ -143,9 +140,7 @@
                     em.origRooms = JSON.parse(JSON.stringify(item.rooms));
 
                   }).catch((error) => {
-                    console.log(error);
                   });
-
 
             },
 
@@ -164,21 +159,13 @@
 
 
             newLocation() {
-                //intermediary function, for possible future actions
-
                 let em = this;
                 axios.get('/api/rooms').then((response) => {
-
                     em.roomTypes=response.data.roomTypes;
                     em.addDialog=true;
-
                 }).catch((error) => {
-                    console.log(error);
                 });
-
             },
-
-
         },
 
         components: {

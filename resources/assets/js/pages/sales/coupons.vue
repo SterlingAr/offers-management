@@ -43,26 +43,26 @@
 
           <v-card>
             <v-card-title>
-               <span class="headline"><span v-if="couponModel.edit">Actualizeaza</span> <span v-else>Adauga</span> Cupon</span>
+               <span class="headline"><span v-if="couponModel.edit">Edit</span> <span v-else>Add</span>Coupon</span>
             </v-card-title>
             <v-card-text>
                 <v-form v-model="couponModel.valid">
                 <v-flex xs12>
-                <v-text-field :rules="validationRules.codeRules" label="Nume Cupon" v-model="couponModel.code" required></v-text-field>
+                <v-text-field :rules="validationRules.codeRules" label="Coupon name" v-model="couponModel.code" required></v-text-field>
               </v-flex>
                 <v-flex xs12>
-                    <v-text-field type="number" v-model.number="couponModel.redeems" label="Numar folosiri" required></v-text-field>
+                    <v-text-field type="number" v-model.number="couponModel.redeems" label="Redeems" required></v-text-field>
                 </v-flex>
                     <v-flex xs12>
-                        <v-text-field type="number" v-model.number="couponModel.reduction_value" label="Reducere pe persoana" required></v-text-field>
+                        <v-text-field type="number" v-model.number="couponModel.reduction_value" label="Discounted value per person" required></v-text-field>
                     </v-flex>
                 </v-form>
             </v-card-text>
              <v-card-actions>
                  <v-spacer></v-spacer>
-                 <v-btn color="blue darken-1" flat @click.native="closeCouponDialog">Inchide</v-btn>
-                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="updateCoupon" v-if="couponModel.edit">Actualizeaza</v-btn>
-                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="addCoupon" v-else>Salveaza</v-btn>
+                 <v-btn color="blue darken-1" flat @click.native="closeCouponDialog">Close</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="updateCoupon" v-if="couponModel.edit">Update</v-btn>
+                 <v-btn :disabled="!couponModel.valid" color="blue darken-1" flat @click.native="addCoupon" v-else>Save</v-btn>
              </v-card-actions>
 
          </v-card>
@@ -71,11 +71,11 @@
        <!-- Confirm delete coupon dialog -->
        <v-dialog v-model="deletingCoupon" max-width="290">
            <v-card>
-               <v-card-title class="headline">Stergere cupon?</v-card-title>
+               <v-card-title class="headline">Delete coupon?</v-card-title>
                <v-card-actions>
                    <v-spacer></v-spacer>
-                   <v-btn color="green darken-1" flat="flat" @click="deletingCoupon = false">Inchide</v-btn>
-                   <v-btn flat large color="error" @click="deleteCoupon">Da, sterge</v-btn>
+                   <v-btn color="green darken-1" flat="flat" @click="deletingCoupon = false">Close</v-btn>
+                   <v-btn flat large color="error" @click="deleteCoupon">Yes, delete it</v-btn>
                </v-card-actions>
            </v-card>
        </v-dialog>
@@ -117,7 +117,7 @@
                 },
                 validationRules: {
                     codeRules: [
-                        v => !!v || 'Codul e obligatoriu',
+                        v => !!v || 'Coupon name is required',
                         v => v.length <= 10 || 'Name must be less than 10 characters'
                     ],
 
@@ -130,11 +130,11 @@
                         value: 'id'
                     },
                     {
-                        text: 'Cupon code',
+                        text: 'Coupon code',
                         value: 'code'
                     },
-                  { text: 'Reducere pe persoana', value: 'reduction_value' },
-                  { text: 'Numar validari', value: 'redeems' },
+                  { text: 'Discount per person', value: 'reduction_value' },
+                  { text: 'Redeems', value: 'redeems' },
 
                 ],
 
@@ -142,7 +142,6 @@
         },
 
         methods:{
-
 
           addModalInit(){
             this.couponModel={
@@ -155,7 +154,6 @@
             };
             this.addModal=true;
           },
-
 
           updateCouponDialog(model){
                 this.couponModel = {
@@ -199,7 +197,7 @@
 
                     this.$store.dispatch('responseMessage', {
                         type: 'success',
-                        text: 'Cupon adaugat'
+                        text: 'Coupon saved.'
                     });
                     this.addModal=false;
                     this.fetchCoupons();
@@ -229,16 +227,13 @@
             async fetchCoupons(){
                 this.busy=false;
                 try {
+
                     const { data } = await   axios.get('/api/coupons')
                     this.busy=false;
-
                     this.addModal=false;
-
-                    this.coupons=data.coupons
-
+                    this.coupons=data.coupons;
 
                 } catch (e){
-
                     this.$store.dispatch('responseMessage', {
                         type: 'error',
                         text: e.message
